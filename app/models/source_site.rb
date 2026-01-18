@@ -1,0 +1,2 @@
+class SourceSite < ApplicationRecord
+end

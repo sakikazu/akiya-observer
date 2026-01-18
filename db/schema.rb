@@ -10,7 +10,49 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_18_133503) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_18_140113) do
+  create_table "listing_images", force: :cascade do |t|
+    t.integer "source_listing_id", null: false
+    t.text "remote_url"
+    t.text "local_path"
+    t.integer "position"
+    t.datetime "downloaded_at"
+    t.string "checksum"
+    t.string "content_type"
+    t.integer "filesize"
+    t.integer "width"
+    t.integer "height"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source_listing_id"], name: "index_listing_images_on_source_listing_id"
+  end
+
+  create_table "source_listings", force: :cascade do |t|
+    t.integer "source_site_id", null: false
+    t.string "external_id"
+    t.text "url"
+    t.integer "status"
+    t.json "raw_payload"
+    t.datetime "first_seen_at"
+    t.datetime "last_seen_at"
+    t.datetime "disappeared_at"
+    t.datetime "last_checked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source_site_id"], name: "index_source_listings_on_source_site_id"
+  end
+
+  create_table "source_sites", force: :cascade do |t|
+    t.string "name"
+    t.string "code"
+    t.string "base_url"
+    t.string "search_url"
+    t.boolean "active"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_source_sites_on_code"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -22,4 +64,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_18_133503) do
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
+
+  add_foreign_key "listing_images", "source_listings"
+  add_foreign_key "source_listings", "source_sites"
 end
