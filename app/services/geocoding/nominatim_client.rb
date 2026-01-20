@@ -3,8 +3,10 @@ require "net/http"
 require "uri"
 
 module Geocoding
+  # Nominatim のジオコーディングを最小限に呼び出すクライアント。
   class NominatimClient
     DEFAULT_BASE_URL = "https://nominatim.openstreetmap.org/search"
+    # Nominatim は User-Agent の明示が必須。
     DEFAULT_USER_AGENT = "akiya-observer/1.0 (contact: local)"
 
     def initialize(base_url: DEFAULT_BASE_URL, user_agent: DEFAULT_USER_AGENT)
@@ -12,6 +14,7 @@ module Geocoding
       @user_agent = user_agent
     end
 
+    # { latitude:, longitude: } を返す。該当なしは nil。
     def geocode(address)
       return if address.to_s.strip.empty?
 

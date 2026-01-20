@@ -7,10 +7,13 @@ require "securerandom"
 require "uri"
 
 module OkSmile
+  # OK Smile の保存済みHTMLから物件情報と画像を取り込む。
   class HtmlImporter
     DEFAULT_BASE_URL = "https://www.ok-smile.jp"
     DEFAULT_DETAIL_DIR = "/tmp"
+    # 取り込み結果の画像はリポジトリ内のストレージに保存する。
     IMAGE_STORAGE_ROOT = "storage/listing_images/ok_smile"
+    # 画像取得ごとに待機を入れて負荷を抑える。
     DEFAULT_THROTTLE_SECONDS = 1.0
     DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     IGNORE_TAG_CLASSES = %w[icon_img_count history_icon view-count icon_new].freeze
@@ -47,7 +50,7 @@ module OkSmile
       end
     end
 
-    private
+    protected
 
     def find_or_create_source_site
       SourceSite.find_or_create_by!(code: @source_site_code) do |site|
@@ -97,6 +100,7 @@ module OkSmile
       listing
     end
 
+    # 詳細ページには住所や建ぺい率などの追加情報がある。
     def update_from_detail(listing, doc)
       info = parse_info_table(doc)
       coverage_ratio, floor_ratio = parse_coverage_ratio(info["建ぺい率・容積率"])
@@ -191,6 +195,7 @@ module OkSmile
       end
     end
 
+    # 建ぺい率・容積率の表記ゆれ（60%/200% など）を2項目に分解する。
     def parse_coverage_ratio(value)
       cleaned = clean_text(value)
       return [nil, nil] if cleaned.empty?
@@ -203,6 +208,7 @@ module OkSmile
       end
     end
 
+    # 物件タグは .prop-icon に出るため、UI専用バッジを除外する。
     def extract_tags(node)
       node.css(".prop-icon").map do |tag|
         next if (tag["class"].to_s.split & IGNORE_TAG_CLASSES).any?
@@ -216,6 +222,7 @@ module OkSmile
       (current + incoming).uniq
     end
 
+    # 一覧ページはサムネイル1枚のみ取得する。
     def update_images_from_list(listing, node)
       image = node.at_css("img.prop-img")
       return unless image
@@ -227,6 +234,7 @@ module OkSmile
       upsert_images(listing, [url], reset_main: false)
     end
 
+    # 詳細ページは全画像のカルーセルを取得する。
     def update_images_from_detail(listing, doc)
       urls = doc.css("img.main-slider-image").map do |image|
         image["data-lazy"].presence || image["src"].presence
@@ -250,6 +258,7 @@ module OkSmile
       end
     end
 
+    # 画像取得が200以外なら中断し、欠損取り込みを避ける。
     def download_image(listing, image)
       return if image.remote_url.blank?
 
@@ -275,6 +284,7 @@ module OkSmile
       log("downloaded image to #{path}")
     end
 
+    # 画像CDNのリダイレクトに備えて少数回だけ追従する。
     def fetch_with_redirects(url, limit = 3)
       return if limit.negative?
 
@@ -295,6 +305,7 @@ module OkSmile
       end
     end
 
+    # external_id単位で画像を保存する。
     def image_storage_path(listing, remote_url)
       uri = URI.parse(remote_url)
       filename = File.basename(uri.path)
@@ -313,6 +324,7 @@ module OkSmile
       text.to_s.gsub("\u00a0", " ").gsub(/\s+/, " ").strip
     end
 
+    # 住所末尾が数字なら番地ありと判定する簡易ルール。
     def address_precision(address)
       return if address.to_s.strip.empty?
 

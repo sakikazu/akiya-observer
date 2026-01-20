@@ -1,6 +1,7 @@
 require "logger"
 
 module Geocoding
+  # 住所未ジオコーディングの物件をまとめて座標化する。
   class SourceListingGeocoder
     DEFAULT_THROTTLE_SECONDS = 1.0
     DEFAULT_LIMIT = 200
@@ -11,6 +12,7 @@ module Geocoding
       @logger = logger || Logger.new($stdout)
     end
 
+    # 新着に近い物件を優先して座標化する。
     def call(limit: DEFAULT_LIMIT)
       scope = SourceListing.where(latitude: nil, longitude: nil).where.not(address: [nil, ""])
       total = scope.count
