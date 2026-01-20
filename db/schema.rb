@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_18_140113) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_18_154000) do
   create_table "listing_images", force: :cascade do |t|
     t.integer "source_listing_id", null: false
     t.text "remote_url"
@@ -24,6 +24,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_18_140113) do
     t.integer "height"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "is_main", default: false, null: false
+    t.index ["is_main"], name: "index_listing_images_on_is_main"
     t.index ["source_listing_id"], name: "index_listing_images_on_source_listing_id"
   end
 
@@ -32,13 +34,29 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_18_140113) do
     t.string "external_id"
     t.text "url"
     t.integer "status"
-    t.json "raw_payload"
+    t.json "extra_payload"
     t.datetime "first_seen_at"
     t.datetime "last_seen_at"
     t.datetime "disappeared_at"
     t.datetime "last_checked_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "title"
+    t.integer "price"
+    t.string "tag_list"
+    t.string "built_year_month"
+    t.string "layout"
+    t.string "land_area"
+    t.string "building_area"
+    t.string "structure"
+    t.string "zoning"
+    t.string "building_coverage_ratio"
+    t.string "floor_area_ratio"
+    t.datetime "source_updated_at"
+    t.text "address"
+    t.string "address_precision"
+    t.decimal "latitude", precision: 10, scale: 6
+    t.decimal "longitude", precision: 10, scale: 6
     t.index ["source_site_id"], name: "index_source_listings_on_source_site_id"
   end
 
