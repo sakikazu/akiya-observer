@@ -5,7 +5,7 @@ class CreateSourceListings < ActiveRecord::Migration[7.2]
       t.string :external_id
       t.text :url
       t.integer :status
-      t.json :raw_payload
+      t.json :extra_payload
       t.datetime :first_seen_at
       t.datetime :last_seen_at
       t.datetime :disappeared_at
