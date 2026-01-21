@@ -10,7 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_18_154000) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_18_163000) do
+  create_table "elementary_schools", force: :cascade do |t|
+    t.integer "municipality_id", null: false
+    t.string "name", null: false
+    t.integer "total_students"
+    t.text "address"
+    t.text "memo"
+    t.integer "teachers_count"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["municipality_id"], name: "index_elementary_schools_on_municipality_id"
+  end
+
   create_table "listing_images", force: :cascade do |t|
     t.integer "source_listing_id", null: false
     t.text "remote_url"
@@ -27,6 +39,23 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_18_154000) do
     t.boolean "is_main", default: false, null: false
     t.index ["is_main"], name: "index_listing_images_on_is_main"
     t.index ["source_listing_id"], name: "index_listing_images_on_source_listing_id"
+  end
+
+  create_table "municipalities", force: :cascade do |t|
+    t.integer "prefecture_id", null: false
+    t.string "name", null: false
+    t.string "code"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "name_kana"
+    t.index ["prefecture_id"], name: "index_municipalities_on_prefecture_id"
+  end
+
+  create_table "prefectures", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "code"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "source_listings", force: :cascade do |t|
@@ -57,6 +86,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_18_154000) do
     t.string "address_precision"
     t.decimal "latitude", precision: 10, scale: 6
     t.decimal "longitude", precision: 10, scale: 6
+    t.integer "municipality_id"
+    t.index ["municipality_id"], name: "index_source_listings_on_municipality_id"
     t.index ["source_site_id"], name: "index_source_listings_on_source_site_id"
   end
 
@@ -83,6 +114,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_18_154000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "elementary_schools", "municipalities"
   add_foreign_key "listing_images", "source_listings"
+  add_foreign_key "municipalities", "prefectures"
+  add_foreign_key "source_listings", "municipalities"
   add_foreign_key "source_listings", "source_sites"
 end
