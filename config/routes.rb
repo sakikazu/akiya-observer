@@ -11,5 +11,7 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
   # Defines the root path route ("/")
-  # root "posts#index"
+  root "maps#index"
+
+  get "listing_images/:id", to: "listing_images#show", as: :listing_image
 end
