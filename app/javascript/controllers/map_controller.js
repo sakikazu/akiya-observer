@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 // 地図上に物件マーカーを描画し、フィルタとポップアップを管理する。
 export default class extends Controller {
   static targets = ["canvas", "count"]
-  static values = { listings: Array }
+  static values = { listings: Array, schools: Array }
 
   connect() {
     if (!window.L) {
@@ -24,6 +24,7 @@ export default class extends Controller {
 
     this.activeLayer = window.L.layerGroup().addTo(this.map)
     this.disappearedLayer = window.L.layerGroup().addTo(this.map)
+    this.schoolLayer = window.L.layerGroup().addTo(this.map)
 
     this.renderMarkers()
     this.fitBounds()
@@ -39,9 +40,20 @@ export default class extends Controller {
     this.updateCount()
   }
 
+  toggleSchools(event) {
+    const show = event.target.checked
+    if (show) {
+      this.map.addLayer(this.schoolLayer)
+    } else {
+      this.map.removeLayer(this.schoolLayer)
+    }
+    this.updateCount()
+  }
+
   renderMarkers() {
     this.activeLayer.clearLayers()
     this.disappearedLayer.clearLayers()
+    this.schoolLayer.clearLayers()
 
     this.listingsValue.forEach((listing) => {
       if (!listing.latitude || !listing.longitude) return
@@ -63,6 +75,20 @@ export default class extends Controller {
       } else {
         marker.addTo(this.activeLayer)
       }
+    })
+
+    this.schoolsValue.forEach((school) => {
+      if (!school.latitude || !school.longitude) return
+
+      const marker = window.L.circleMarker([school.latitude, school.longitude], {
+        radius: 6,
+        color: "#22c55e",
+        fillColor: "#22c55e",
+        fillOpacity: 0.8,
+        weight: 2,
+      })
+      marker.bindPopup(this.schoolPopupHtml(school), { className: "listing-popup" })
+      marker.addTo(this.schoolLayer)
     })
 
     if (!this.includeDisappeared) {
@@ -88,10 +114,11 @@ export default class extends Controller {
   updateCount() {
     const activeCount = this.activeLayer.getLayers().length
     const goneCount = this.disappearedLayer.getLayers().length
+    const schoolCount = this.schoolLayer.getLayers().length
     if (this.includeDisappeared) {
-      this.countTarget.textContent = `${activeCount + goneCount}件表示（終了${goneCount}件）`
+      this.countTarget.textContent = `${activeCount + goneCount}件表示（終了${goneCount}件 / 小学校${schoolCount}件）`
     } else {
-      this.countTarget.textContent = `${activeCount}件表示`
+      this.countTarget.textContent = `${activeCount}件表示（小学校${schoolCount}件）`
     }
   }
 
@@ -116,6 +143,25 @@ export default class extends Controller {
           <p class="popup-meta">${address}</p>
           <p class="popup-meta">${precisionLabel}・${status}</p>
           <p class="popup-meta">${updated}</p>
+          ${link}
+        </div>
+      </div>
+    `
+  }
+
+  schoolPopupHtml(school) {
+    const address = school.address || "住所未登録"
+    const memo = school.memo ? `<p class="popup-meta">${school.memo}</p>` : ""
+    const link = school.detail_url
+      ? `<a href="${school.detail_url}" target="_blank" rel="noopener">詳細を見る</a>`
+      : ""
+
+    return `
+      <div class="popup-card">
+        <div class="popup-body">
+          <p class="popup-title">${school.name}</p>
+          <p class="popup-meta">${address}</p>
+          ${memo}
           ${link}
         </div>
       </div>

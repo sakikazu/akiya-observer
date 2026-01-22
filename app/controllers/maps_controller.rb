@@ -5,6 +5,7 @@ class MapsController < ApplicationController
     @missing_geocodes = listings.where(latitude: nil, longitude: nil).limit(50)
     @missing_count = listings.where(latitude: nil, longitude: nil).count
     @map_listings = listings.where.not(latitude: nil, longitude: nil).map { |listing| map_payload(listing) }
+    @map_schools = ElementarySchool.where.not(latitude: nil, longitude: nil).map { |school| school_payload(school) }
   end
 
   private
@@ -24,6 +25,18 @@ class MapsController < ApplicationController
       source_updated_at: listing.source_updated_at&.to_date&.to_s,
       disappeared_at: listing.disappeared_at&.to_date&.to_s,
       image_url: image_url(image)
+    }
+  end
+
+  def school_payload(school)
+    {
+      id: school.id,
+      name: school.name,
+      address: school.address,
+      latitude: school.latitude&.to_f,
+      longitude: school.longitude&.to_f,
+      memo: school.memo,
+      detail_url: school.detail_url
     }
   end
 

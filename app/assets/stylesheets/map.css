@@ -102,6 +102,10 @@ body {
   background: var(--slate-400);
 }
 
+.dot-school {
+  background: #22c55e;
+}
+
 .map-panel {
   margin-top: 28px;
 }
