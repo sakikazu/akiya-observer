@@ -36,7 +36,9 @@ class MapsController < ApplicationController
       latitude: school.latitude&.to_f,
       longitude: school.longitude&.to_f,
       memo: school.memo,
-      detail_url: school.detail_url
+      detail_url: school.detail_url,
+      total_students: school.total_students,
+      teachers_count: school.teachers_count
     }
   end
 

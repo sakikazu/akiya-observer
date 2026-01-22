@@ -112,8 +112,8 @@ module Schools
         schools << {
           name: name,
           address: address.presence,
-          total_students: nil,
-          teachers_count: nil,
+          total_students: extract_count(node, "students.html"),
+          teachers_count: extract_count(node, "teachers.html"),
           memo: nil,
           detail_url: url,
           latitude: coords&.fetch(:latitude, nil),
@@ -183,6 +183,18 @@ module Schools
         coords[url] = { latitude: lat.to_f, longitude: lng.to_f }
       end
       coords
+    end
+
+    # 児童数・教員数などの数値をリンク先別に抽出する。
+    def extract_count(node, href_include)
+      link = node.at_css("a[href*='#{href_include}']")
+      return if link.nil?
+
+      text = clean(link.text)
+      digits = text.gsub(/[^\d]/, "")
+      return if digits.empty?
+
+      digits.to_i
     end
 
     def normalize_municipality_name(name)

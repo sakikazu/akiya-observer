@@ -155,12 +155,16 @@ export default class extends Controller {
     const link = school.detail_url
       ? `<a href="${school.detail_url}" target="_blank" rel="noopener">詳細を見る</a>`
       : ""
+    const students = school.total_students ? `児童数: ${school.total_students}人` : "児童数: 未登録"
+    const teachers = school.teachers_count ? `教員数: ${school.teachers_count}人` : "教員数: 未登録"
 
     return `
       <div class="popup-card">
         <div class="popup-body">
           <p class="popup-title">${school.name}</p>
           <p class="popup-meta">${address}</p>
+          <p class="popup-meta">${students}</p>
+          <p class="popup-meta">${teachers}</p>
           ${memo}
           ${link}
         </div>
