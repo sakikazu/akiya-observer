@@ -24,7 +24,7 @@ module Schools
       end
 
       schools = parse_school_blocks(doc, html)
-      log("found #{schools.size} schools")
+      log("#{municipality.name}の小学校、#{schools.size}校をインポートしました")
 
       schools.each do |school|
         record = municipality.elementary_schools.find_or_initialize_by(name: school[:name])

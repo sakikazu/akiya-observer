@@ -1,9 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
+const MISSING_MARKER_SIZE = 34
+
 // 地図上に物件・小学校マーカーを描画し、距離表示を管理する。
 export default class extends Controller {
-  static targets = ["canvas", "count"]
-  static values = { listings: Array, schools: Array }
+  static targets = ["canvas", "count", "mode"]
+  static values = { listings: Array, schools: Array, missing: Array }
 
   // Leafletを初期化してレイヤーを用意する。
   connect() {
@@ -13,6 +15,9 @@ export default class extends Controller {
     }
 
     this.includeDisappeared = false
+    this.includeMissing = true
+    this.representativeMode = false
+    this.representativeTarget = null
     this.map = window.L.map(this.canvasTarget, {
       zoomControl: false,
       minZoom: 5,
@@ -27,9 +32,22 @@ export default class extends Controller {
     this.disappearedLayer = window.L.layerGroup().addTo(this.map)
     this.schoolLayer = window.L.layerGroup().addTo(this.map)
     this.lineLayer = window.L.layerGroup().addTo(this.map)
+    this.missingLayer = window.L.layerGroup().addTo(this.map)
 
+    this.handlePopupClick = this.handlePopupClick.bind(this)
+    this.handleMapClick = this.handleMapClick.bind(this)
+    this.map.getContainer().addEventListener("click", this.handlePopupClick)
+    this.map.on("click", this.handleMapClick)
     this.renderMarkers()
     this.fitBounds()
+    this.updateModeLabel()
+  }
+
+  disconnect() {
+    if (this.map) {
+      this.map.getContainer().removeEventListener("click", this.handlePopupClick)
+      this.map.off("click", this.handleMapClick)
+    }
   }
 
   // 掲載終了物件のレイヤー表示を切り替える。
@@ -54,11 +72,23 @@ export default class extends Controller {
     this.updateCount()
   }
 
+  // 座標未取得の市区町村レイヤーの表示を切り替える。
+  toggleMissing(event) {
+    this.includeMissing = event.target.checked
+    if (this.includeMissing) {
+      this.map.addLayer(this.missingLayer)
+    } else {
+      this.map.removeLayer(this.missingLayer)
+    }
+    this.updateCount()
+  }
+
   // 物件・小学校のマーカーを再描画する。
   renderMarkers() {
     this.activeLayer.clearLayers()
     this.disappearedLayer.clearLayers()
     this.schoolLayer.clearLayers()
+    this.missingLayer.clearLayers()
 
     this.listingsValue.forEach((listing) => {
       if (!listing.latitude || !listing.longitude) return
@@ -105,8 +135,13 @@ export default class extends Controller {
       marker.addTo(this.schoolLayer)
     })
 
+    this.addMissingMarkers()
+
     if (!this.includeDisappeared) {
       this.map.removeLayer(this.disappearedLayer)
+    }
+    if (!this.includeMissing) {
+      this.map.removeLayer(this.missingLayer)
     }
     this.updateCount()
   }
@@ -116,6 +151,14 @@ export default class extends Controller {
     const coords = this.listingsValue
       .filter((listing) => listing.latitude && listing.longitude)
       .map((listing) => [listing.latitude, listing.longitude])
+
+    if (this.includeMissing) {
+      this.missingValue.forEach((missing) => {
+        if (missing.latitude && missing.longitude) {
+          coords.push([missing.latitude, missing.longitude])
+        }
+      })
+    }
 
     if (coords.length === 0) {
       this.map.setView([34.6618, 133.9344], 9)
@@ -131,15 +174,17 @@ export default class extends Controller {
     const activeCount = this.activeLayer.getLayers().length
     const goneCount = this.disappearedLayer.getLayers().length
     const schoolCount = this.schoolLayer.getLayers().length
+    const missingLabel = this.missingLabelText()
     if (this.includeDisappeared) {
-      this.countTarget.textContent = `${activeCount + goneCount}件表示（終了${goneCount}件 / 小学校${schoolCount}件）`
+      this.countTarget.textContent = `${activeCount + goneCount}件表示（終了${goneCount}件 / 小学校${schoolCount}件${missingLabel}）`
     } else {
-      this.countTarget.textContent = `${activeCount}件表示（小学校${schoolCount}件）`
+      this.countTarget.textContent = `${activeCount}件表示（小学校${schoolCount}件${missingLabel}）`
     }
   }
 
   // 物件ポップアップのHTMLを生成する。
-  popupHtml(listing, nearestSchool) {
+  popupHtml(listing, nearestSchool = null) {
+    const resolvedNearest = nearestSchool || this.nearestSchool(listing)
     const precisionLabel = listing.address_precision === "block" ? "番地あり" : "番地なし"
     const image = listing.image_url
       ? `<img src="${listing.image_url}" alt="${listing.title}" class="popup-image">`
@@ -156,8 +201,8 @@ export default class extends Controller {
       listing.latitude && listing.longitude
         ? `<a href="https://www.google.com/maps?q=${listing.latitude},${listing.longitude}" target="_blank" rel="noopener">Google Mapで見る</a>`
         : ""
-    const distance = nearestSchool
-      ? `最寄り小学校まで ${nearestSchool.distance_km.toFixed(2)}km（直線）`
+    const distance = resolvedNearest
+      ? `最寄り小学校まで ${resolvedNearest.distance_km.toFixed(2)}km（直線）`
       : "最寄り小学校: 未登録"
 
     return `
@@ -179,8 +224,47 @@ export default class extends Controller {
     `
   }
 
+  // 未ジオコーディング市区町村のポップアップを生成する。
+  missingPopupHtml(missing) {
+    const name = missing.name || "市区町村不明"
+    const count = missing.count || 0
+    const listings = missing.listings || []
+    const repStatus = missing.representative_set ? "代表点: 登録済み" : "代表点: 未設定"
+    const actionButton = this.missingActionButton(missing)
+    const items = this.missingListItems(missing, listings)
+    const more = this.missingMoreLabel(missing)
+    const note = this.missingRepresentativeNote(missing)
+    return `
+      <div class="popup-card">
+        <div class="popup-body">
+          <p class="popup-title">${name}</p>
+          <p class="popup-meta">座標未取得: ${count}件</p>
+          <p class="popup-meta">${repStatus}</p>
+          ${actionButton}
+          <div class="missing-list">
+            ${items}
+          </div>
+          ${more}
+          <p class="popup-meta">${note}</p>
+        </div>
+      </div>
+    `
+  }
+
+  // 未ジオコーディングの件数バッジを生成する。
+  missingIcon(count) {
+    const size = MISSING_MARKER_SIZE
+    return window.L.divIcon({
+      html: `<span class="missing-marker__count">${count}</span>`,
+      className: "missing-marker",
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    })
+  }
+
   // 最寄り小学校を計算して返す。
   nearestSchool(listing) {
+    if (!listing.latitude || !listing.longitude) return null
     if (!this.schoolsValue || this.schoolsValue.length === 0) return null
 
     const scoped = this.schoolsValue.filter((school) => {
@@ -199,6 +283,29 @@ export default class extends Controller {
         school.latitude,
         school.longitude
       )
+      if (!nearest || distance < nearest.distance_km) {
+        nearest = { ...school, distance_km: distance }
+      }
+    })
+    return nearest
+  }
+
+  // 指定座標から最寄り小学校を計算して返す。
+  nearestSchoolFromCoords(latitude, longitude, municipalityId) {
+    if (!latitude || !longitude) return null
+    if (!this.schoolsValue || this.schoolsValue.length === 0) return null
+
+    const scoped = this.schoolsValue.filter((school) => {
+      if (!school.latitude || !school.longitude) return false
+      if (!municipalityId) return true
+      return school.municipality_id === municipalityId
+    })
+
+    if (scoped.length === 0) return null
+
+    let nearest = null
+    scoped.forEach((school) => {
+      const distance = this.haversineKm(latitude, longitude, school.latitude, school.longitude)
       if (!nearest || distance < nearest.distance_km) {
         nearest = { ...school, distance_km: distance }
       }
@@ -260,5 +367,154 @@ export default class extends Controller {
         </div>
       </div>
     `
+  }
+
+  totalMissingCount() {
+    return this.missingValue.reduce((sum, missing) => sum + (missing.count || 0), 0)
+  }
+
+  missingLabelText() {
+    const missingCount = this.totalMissingCount()
+    return this.includeMissing ? ` / 未取得${missingCount}件` : " / 未取得非表示"
+  }
+
+  addMissingMarkers() {
+    this.missingValue.forEach((missing) => {
+      if (!missing.latitude || !missing.longitude) return
+
+      const marker = window.L.marker([missing.latitude, missing.longitude], {
+        icon: this.missingIcon(missing.count || 0),
+        className: "missing-marker-wrapper",
+      })
+      marker.bindPopup(this.missingPopupHtml(missing), { className: "listing-popup" })
+      marker.addTo(this.missingLayer)
+    })
+  }
+
+  missingActionButton(missing) {
+    const actionLabel = this.representativeMode && this.representativeTarget?.municipality_id === missing.municipality_id
+      ? "設定モード解除"
+      : "代表点を設定"
+    return `<button type="button" class="missing-list__action" data-missing-set-representative="1" data-missing-municipality-id="${missing.municipality_id}">
+        ${actionLabel}
+      </button>`
+  }
+
+  missingListItems(missing, listings) {
+    return listings.map((listing) => `
+        <button type="button" class="missing-list__item" data-missing-municipality-id="${missing.municipality_id}" data-missing-listing-id="${listing.id}">
+          ${listing.title || "物件名未登録"}
+        </button>
+      `).join("")
+  }
+
+  missingMoreLabel(missing) {
+    if (!missing.remaining_count || missing.remaining_count <= 0) return ""
+
+    return `<p class="popup-meta">他${missing.remaining_count}件</p>`
+  }
+
+  missingRepresentativeNote(missing) {
+    return missing.representative_set
+      ? "代表点（手動設定）"
+      : "代表点（市区町村内の既知座標平均）"
+  }
+
+  handlePopupClick(event) {
+    const setButton = event.target.closest("[data-missing-set-representative]")
+    if (setButton) {
+      event.preventDefault()
+      const municipalityId = Number(setButton.dataset.missingMunicipalityId)
+      const missing = this.findMissingEntry(municipalityId)
+      if (missing) {
+        if (this.representativeMode && this.representativeTarget?.municipality_id === municipalityId) {
+          this.setRepresentativeMode(false)
+        } else {
+          this.setRepresentativeMode(true, missing)
+        }
+      }
+      return
+    }
+
+    const button = event.target.closest("[data-missing-listing-id]")
+    if (!button) return
+
+    event.preventDefault()
+    const municipalityId = Number(button.dataset.missingMunicipalityId)
+    const listingId = Number(button.dataset.missingListingId)
+    const missing = this.findMissingEntry(municipalityId)
+    if (!missing) return
+
+    const listing = (missing.listings || []).find((entry) => entry.id === listingId)
+    if (!listing) return
+
+    const nearest = this.nearestSchoolFromCoords(missing.latitude, missing.longitude, listing.municipality_id)
+    const content = this.popupHtml(listing, nearest)
+    window.L.popup({ className: "listing-popup", autoClose: false, closeOnClick: false })
+      .setLatLng([missing.latitude, missing.longitude])
+      .setContent(content)
+      .addTo(this.map)
+  }
+
+  findMissingEntry(municipalityId) {
+    return this.missingValue.find((entry) => entry.municipality_id === municipalityId)
+  }
+
+  handleMapClick(event) {
+    if (!this.representativeMode || !this.representativeTarget) return
+
+    const { lat, lng } = event.latlng
+    this.saveRepresentativePoint(this.representativeTarget, lat, lng)
+  }
+
+  setRepresentativeMode(enabled, target = null) {
+    this.representativeMode = enabled
+    this.representativeTarget = enabled ? target : null
+    this.updateModeLabel()
+  }
+
+  updateModeLabel() {
+    if (!this.hasModeTarget) return
+
+    if (this.representativeMode && this.representativeTarget) {
+      this.modeTarget.textContent = `${this.representativeTarget.name}の代表点をクリックで設定`
+      this.canvasTarget.classList.add("is-placing")
+    } else {
+      this.modeTarget.textContent = ""
+      this.canvasTarget.classList.remove("is-placing")
+    }
+  }
+
+  async saveRepresentativePoint(missing, latitude, longitude) {
+    const token = document.querySelector("meta[name=\"csrf-token\"]")?.getAttribute("content")
+    if (!token) {
+      console.warn("CSRF token missing")
+      return
+    }
+
+    try {
+      const response = await fetch(`/municipalities/${missing.municipality_id}/representative_point`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": token,
+        },
+        body: JSON.stringify({ latitude, longitude }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`failed to update representative point (${response.status})`)
+      }
+
+      const payload = await response.json()
+      missing.latitude = payload.representative_latitude
+      missing.longitude = payload.representative_longitude
+      missing.representative_set = true
+      this.setRepresentativeMode(false)
+      this.renderMarkers()
+    } catch (error) {
+      console.warn(error)
+      this.setRepresentativeMode(false)
+    }
   }
 }

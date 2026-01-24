@@ -14,4 +14,6 @@ Rails.application.routes.draw do
   root "maps#index"
 
   get "listing_images/:id", to: "listing_images#show", as: :listing_image
+
+  patch "municipalities/:id/representative_point", to: "municipalities#representative_point"
 end

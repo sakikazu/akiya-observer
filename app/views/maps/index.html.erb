@@ -6,7 +6,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+JP:wght@400;600&display=swap" rel="stylesheet">
 <% end %>
 
-<div class="map-shell" data-controller="map" data-map-listings-value="<%= json_escape(@map_listings.to_json) %>" data-map-schools-value="<%= json_escape(@map_schools.to_json) %>">
+<div class="map-shell" data-controller="map" data-map-listings-value="<%= json_escape(@map_listings.to_json) %>" data-map-schools-value="<%= json_escape(@map_schools.to_json) %>" data-map-missing-value="<%= json_escape(@map_missing_municipalities.to_json) %>">
   <aside class="map-sidebar">
     <div class="map-hero">
       <p class="map-eyebrow">Akiya Observer</p>
@@ -23,11 +23,16 @@
           <input type="checkbox" data-action="map#toggleSchools" checked>
           <span>小学校を表示</span>
         </label>
+        <label class="toggle">
+          <input type="checkbox" data-action="map#toggleMissing" checked>
+          <span>座標未取得の市区町村を表示</span>
+        </label>
         <div class="legend">
           <span class="legend-item"><span class="dot dot-precise"></span>番地あり</span>
           <span class="legend-item"><span class="dot dot-area"></span>番地なし</span>
           <span class="legend-item"><span class="dot dot-gone"></span>掲載終了</span>
           <span class="legend-item"><span class="dot dot-school"></span>小学校</span>
+          <span class="legend-item"><span class="dot dot-missing"></span>座標未取得</span>
         </div>
       </div>
     </div>
@@ -51,6 +56,7 @@
     <div id="listing-map" class="map-canvas" data-map-target="canvas"></div>
     <div class="map-overlay">
       <span class="map-count" data-map-target="count"></span>
+      <span class="map-mode" data-map-target="mode"></span>
     </div>
   </section>
 </div>
