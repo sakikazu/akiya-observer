@@ -141,46 +141,6 @@ body {
   line-height: 1;
 }
 
-.map-panel {
-  margin-top: 28px;
-}
-
-.map-panel h2 {
-  font-family: "Space Grotesk", "Noto Sans JP", sans-serif;
-  font-size: 18px;
-  margin-bottom: 8px;
-}
-
-.map-muted {
-  color: var(--slate-500);
-  margin-bottom: 12px;
-}
-
-.pending-list {
-  display: grid;
-  gap: 12px;
-  max-height: 40vh;
-  overflow: auto;
-  padding-right: 6px;
-}
-
-.pending-card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 12px 14px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-}
-
-.pending-title {
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.pending-meta {
-  font-size: 12px;
-  color: var(--slate-500);
-}
-
 .map-stage {
   position: relative;
   overflow: hidden;

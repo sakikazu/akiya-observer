@@ -2,8 +2,6 @@
 class MapsController < ApplicationController
   def index
     listings = SourceListing.includes(:listing_images).order(source_updated_at: :desc)
-    @missing_geocodes = listings.where(latitude: nil, longitude: nil).limit(50)
-    @missing_count = listings.where(latitude: nil, longitude: nil).count
     @map_listings = listings.where.not(latitude: nil, longitude: nil).map { |listing| map_payload(listing) }
     @map_schools = ElementarySchool.where.not(latitude: nil, longitude: nil).map { |school| school_payload(school) }
     @map_missing_municipalities = missing_municipality_payloads(listings)

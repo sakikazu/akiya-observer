@@ -37,19 +37,6 @@
       </div>
     </div>
 
-    <section class="map-panel">
-      <h2>ジオコーディング待ち</h2>
-      <p class="map-muted">座標未取得: <strong><%= @missing_count %></strong> 件</p>
-      <div class="pending-list">
-        <% @missing_geocodes.each do |listing| %>
-          <div class="pending-card">
-            <p class="pending-title"><%= listing.title %></p>
-            <p class="pending-meta"><%= listing.address.presence || "住所未登録" %></p>
-            <p class="pending-meta">更新日: <%= listing.source_updated_at&.to_date %></p>
-          </div>
-        <% end %>
-      </div>
-    </section>
   </aside>
 
   <section class="map-stage">
