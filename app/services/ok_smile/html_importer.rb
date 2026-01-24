@@ -15,10 +15,10 @@ module OkSmile
     IMAGE_STORAGE_ROOT = "storage/listing_images/ok_smile"
     # 画像取得ごとに待機を入れて負荷を抑える。
     DEFAULT_THROTTLE_SECONDS = 1.0
-    DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
     IGNORE_TAG_CLASSES = %w[icon_img_count history_icon view-count icon_new].freeze
 
-    def initialize(list_path:, detail_dir: DEFAULT_DETAIL_DIR, source_site_code: "ok-smile", base_url: DEFAULT_BASE_URL, throttle_seconds: DEFAULT_THROTTLE_SECONDS, logger: nil, user_agent: DEFAULT_USER_AGENT)
+    def initialize(list_path: nil, detail_dir: DEFAULT_DETAIL_DIR, source_site_code: "ok-smile", base_url: DEFAULT_BASE_URL, throttle_seconds: DEFAULT_THROTTLE_SECONDS, logger: nil, user_agent: DEFAULT_USER_AGENT, download_images: true, request_sleep_range: (1.0..3.0), prefecture_code: nil)
       @list_path = list_path
       @detail_dir = detail_dir
       @source_site_code = source_site_code
@@ -26,9 +26,15 @@ module OkSmile
       @throttle_seconds = throttle_seconds
       @logger = logger || Logger.new($stdout)
       @user_agent = user_agent
+      @download_images = download_images
+      @request_sleep_range = request_sleep_range
+      @request_count = 0
+      @prefecture_code = prefecture_code
     end
 
     def call
+      raise ArgumentError, "list_path is required for HtmlImporter" if @list_path.nil?
+
       doc = Nokogiri::HTML(File.read(@list_path))
       source_site = find_or_create_source_site
 
@@ -277,7 +283,7 @@ module OkSmile
         image = listing.listing_images.find_or_initialize_by(remote_url: url)
         image.position = index + 1
         image.is_main = index.zero?
-        download_image(listing, image)
+        download_image(listing, image) if @download_images
         image.save!
       end
     end
@@ -291,8 +297,10 @@ module OkSmile
       return if File.exist?(absolute_path)
 
       FileUtils.mkdir_p(File.dirname(absolute_path))
+      increment_request_count
+      log("request #{image.remote_url}")
       response = fetch_with_redirects(image.remote_url)
-      sleep(@throttle_seconds) if @throttle_seconds.positive?
+      sleep_random
       unless response&.is_a?(Net::HTTPSuccess)
         code = response&.code || "unknown"
         message = "image download failed (#{code}) for #{image.remote_url}"
@@ -312,6 +320,7 @@ module OkSmile
     def fetch_with_redirects(url, limit = 3)
       return if limit.negative?
 
+      log("リクエスト実行: #{url}")
       uri = URI.parse(url)
       response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
         request = Net::HTTP::Get.new(uri.request_uri)
@@ -357,6 +366,17 @@ module OkSmile
 
     def log(message)
       @logger&.info(message)
+    end
+
+    def increment_request_count
+      @request_count += 1
+    end
+
+    def sleep_random
+      range = @request_sleep_range
+      return unless range
+
+      sleep(rand(range))
     end
 
     def detail_path_for(external_id)
