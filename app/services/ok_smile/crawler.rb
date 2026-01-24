@@ -3,7 +3,7 @@ require "open3"
 module OkSmile
   # curl で取得した HTML を直接解析して DB に保存する（岡山県スコープ）。
   class Crawler < HtmlImporter
-    DEFAULT_PAGE_THROTTLE_SECONDS = 1.0
+    DEFAULT_PAGE_THROTTLE_SECONDS = 0.0
     DEFAULT_PREFECTURE_CODE = "33"
     DEFAULT_PAGE_REQUEST_SLEEP_RANGE = (3.0..7.0)
 
@@ -12,8 +12,8 @@ module OkSmile
       @search_url = search_url
       @page_throttle_seconds = page_throttle_seconds
       @fetch_detail = fetch_detail
-      @page_request_sleep_range = page_request_sleep_range
       @fetch_all = fetch_all
+      @page_request_sleep_range = (20.0..20.0)
       @start_page = start_page
       @max_pages = max_pages
     end
@@ -22,6 +22,7 @@ module OkSmile
       source_site = find_or_create_source_site
       latest_known = SourceListing.where(source_site: source_site).maximum(:source_updated_at)
       log("latest known source_updated_at: #{latest_known || 'none'}")
+      log("補足: 一覧HTMLの data-upd-time は物件の更新日時のUNIX秒。ページ内の最大値を使って巡回停止を判断します。")
 
       page = @start_page
       processed_pages = 0
@@ -61,9 +62,9 @@ module OkSmile
         processed_pages += 1
         if @max_pages && processed_pages >= @max_pages
           if next_page_available?(doc, page)
-            log("stop paging: reached max_pages, next page is #{page}")
+            log("ページング停止: 指定したページ数(#{@max_pages})に到達。次のページは#{page}")
           else
-            log("stop paging: reached max_pages and no next page link")
+            log("ページング停止: 指定したページ数(#{@max_pages})に到達、次ページなし")
           end
           break
         end
