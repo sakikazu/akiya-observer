@@ -48,7 +48,7 @@ module OkSmile
         end
 
         if !@fetch_all && latest_known && max_on_page && max_on_page <= latest_known
-          log("stop paging: page max #{max_on_page} <= latest known #{latest_known}")
+          log("ページング停止: このページの最新更新(#{max_on_page})が既知の最新更新(#{latest_known})以下のため、以降は新規更新なしと判断")
           break
         end
 

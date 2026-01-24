@@ -27,6 +27,7 @@ class MapsController < ApplicationController
       municipality_id: listing.municipality_id,
       url: listing.url,
       source_updated_at: listing.source_updated_at&.to_date&.to_s,
+      first_seen_at: listing.first_seen_at&.to_date&.to_s,
       disappeared_at: listing.disappeared_at&.to_date&.to_s,
       image_url: image_url(image)
     }

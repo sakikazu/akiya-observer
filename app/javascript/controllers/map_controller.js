@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 const MISSING_MARKER_SIZE = 34
+const RECENT_DAYS = 7
 
 // 地図上に物件・小学校マーカーを描画し、距離表示を管理する。
 export default class extends Controller {
@@ -16,6 +17,7 @@ export default class extends Controller {
 
     this.includeDisappeared = false
     this.includeMissing = true
+    this.includeRecentOnly = false
     this.representativeMode = false
     this.representativeTarget = null
     this.map = window.L.map(this.canvasTarget, {
@@ -72,6 +74,13 @@ export default class extends Controller {
     this.updateCount()
   }
 
+  // 新着物件のみを表示する。
+  toggleRecentOnly(event) {
+    this.includeRecentOnly = event.target.checked
+    this.renderMarkers()
+    this.fitBounds()
+  }
+
   // 座標未取得の市区町村レイヤーの表示を切り替える。
   toggleMissing(event) {
     this.includeMissing = event.target.checked
@@ -90,7 +99,7 @@ export default class extends Controller {
     this.schoolLayer.clearLayers()
     this.missingLayer.clearLayers()
 
-    this.listingsValue.forEach((listing) => {
+    this.filteredListings().forEach((listing) => {
       if (!listing.latitude || !listing.longitude) return
 
       const isDisappeared = Boolean(listing.disappeared_at)
@@ -148,7 +157,7 @@ export default class extends Controller {
 
   // マーカーの範囲に合わせて地図の表示範囲を調整する。
   fitBounds() {
-    const coords = this.listingsValue
+    const coords = this.filteredListings()
       .filter((listing) => listing.latitude && listing.longitude)
       .map((listing) => [listing.latitude, listing.longitude])
 
@@ -371,6 +380,24 @@ export default class extends Controller {
 
   totalMissingCount() {
     return this.missingValue.reduce((sum, missing) => sum + (missing.count || 0), 0)
+  }
+
+  filteredListings() {
+    if (!this.includeRecentOnly) return this.listingsValue
+
+    return this.listingsValue.filter((listing) => this.isRecentListing(listing))
+  }
+
+  isRecentListing(listing) {
+    if (!listing.first_seen_at) return false
+
+    const start = new Date(listing.first_seen_at)
+    const now = new Date()
+    if (Number.isNaN(start.getTime())) return false
+
+    const diffMs = now.getTime() - start.getTime()
+    const diffDays = diffMs / (1000 * 60 * 60 * 24)
+    return diffDays <= RECENT_DAYS
   }
 
   missingLabelText() {
