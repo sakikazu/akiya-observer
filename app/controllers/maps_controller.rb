@@ -21,6 +21,9 @@ class MapsController < ApplicationController
       address_precision: listing.address_precision,
       latitude: listing.latitude&.to_f,
       longitude: listing.longitude&.to_f,
+      land_area: listing.land_area,
+      building_area: listing.building_area,
+      municipality_id: listing.municipality_id,
       url: listing.url,
       source_updated_at: listing.source_updated_at&.to_date&.to_s,
       disappeared_at: listing.disappeared_at&.to_date&.to_s,
@@ -37,6 +40,7 @@ class MapsController < ApplicationController
       longitude: school.longitude&.to_f,
       memo: school.memo,
       detail_url: school.detail_url,
+      municipality_id: school.municipality_id,
       total_students: school.total_students,
       teachers_count: school.teachers_count
     }

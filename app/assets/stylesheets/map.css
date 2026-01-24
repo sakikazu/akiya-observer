@@ -4,7 +4,7 @@
   --sand-100: #f8fafc;
   --sand-200: #eef2f7;
   --sun-500: #f97316;
-  --sky-500: #38bdf8;
+  --sky-500: #0ea5e9;
   --slate-400: #94a3b8;
   --slate-500: #64748b;
   --slate-700: #334155;
@@ -84,8 +84,8 @@ body {
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
   display: inline-block;
 }
@@ -104,6 +104,18 @@ body {
 
 .dot-school {
   background: #22c55e;
+}
+
+.listing-marker {
+  filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.5));
+}
+
+.listing-marker.is-gone {
+  filter: drop-shadow(0 0 4px rgba(148, 163, 184, 0.6));
+}
+
+.school-marker {
+  filter: drop-shadow(0 0 7px rgba(34, 197, 94, 0.65));
 }
 
 .map-panel {
