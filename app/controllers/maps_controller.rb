@@ -1,17 +1,20 @@
 # 物件の地図表示用データを提供する。
+require "set"
 class MapsController < ApplicationController
   def index
     listings = SourceListing.includes(:listing_images).order(source_updated_at: :desc)
-    @map_listings = listings.where.not(latitude: nil, longitude: nil).map { |listing| map_payload(listing) }
+    favorite_ids = favorite_listing_ids
+    @favorite_listings = favorite_listings
+    @map_listings = listings.where.not(latitude: nil, longitude: nil).map { |listing| map_payload(listing, favorite_ids) }
     @map_schools = ElementarySchool.where.not(latitude: nil, longitude: nil).map { |school| school_payload(school) }
-    @map_missing_municipalities = missing_municipality_payloads(listings)
+    @map_missing_municipalities = missing_municipality_payloads(listings, favorite_ids)
   end
 
   private
 
   MISSING_LISTINGS_SAMPLE_LIMIT = 20
 
-  def map_payload(listing)
+  def map_payload(listing, favorite_ids = nil)
     image = listing.listing_images.find(&:is_main) || listing.listing_images.first
     {
       id: listing.id,
@@ -28,6 +31,7 @@ class MapsController < ApplicationController
       url: listing.url,
       source_updated_at: listing.source_updated_at&.to_date&.to_s,
       first_seen_at: listing.first_seen_at&.to_date&.to_s,
+      favorite: favorite_ids ? favorite_ids.include?(listing.id) : false,
       disappeared_at: listing.disappeared_at&.to_date&.to_s,
       image_url: image_url(image)
     }
@@ -49,7 +53,7 @@ class MapsController < ApplicationController
   end
 
   # 座標未取得の市区町村を代表点付きでまとめる。
-  def missing_municipality_payloads(listings)
+  def missing_municipality_payloads(listings, favorite_ids = nil)
     missing_scope = listings.where(latitude: nil, longitude: nil).where.not(municipality_id: nil)
     missing_counts = missing_scope.group(:municipality_id).count
     return [] if missing_counts.empty?
@@ -65,7 +69,7 @@ class MapsController < ApplicationController
       samples = samples_by_municipality[listing.municipality_id]
       next if samples.size >= MISSING_LISTINGS_SAMPLE_LIMIT
 
-      samples << map_payload(listing)
+      samples << map_payload(listing, favorite_ids)
     end
 
     municipality_ids.map do |municipality_id|
@@ -112,6 +116,19 @@ class MapsController < ApplicationController
     return if price.blank?
 
     view_context.number_to_currency(price, unit: "¥", precision: 0, format: "%u%n")
+  end
+
+  def favorite_listing_ids
+    return Set.new unless user_signed_in?
+
+    current_user.favorites.pluck(:source_listing_id).to_set
+  end
+
+  def favorite_listings
+    return [] unless user_signed_in?
+
+    current_user.favorite_listings.includes(:listing_images)
+      .order(source_updated_at: :desc)
   end
 
   def image_url(image)

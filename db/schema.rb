@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_24_090000) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_24_103000) do
   create_table "elementary_schools", force: :cascade do |t|
     t.integer "municipality_id", null: false
     t.string "name", null: false
@@ -24,6 +24,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_24_090000) do
     t.decimal "longitude", precision: 10, scale: 6
     t.text "detail_url"
     t.index ["municipality_id"], name: "index_elementary_schools_on_municipality_id"
+  end
+
+  create_table "favorites", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "source_listing_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source_listing_id"], name: "index_favorites_on_source_listing_id"
+    t.index ["user_id", "source_listing_id"], name: "index_favorites_on_user_id_and_source_listing_id", unique: true
+    t.index ["user_id"], name: "index_favorites_on_user_id"
   end
 
   create_table "listing_images", force: :cascade do |t|
@@ -121,6 +131,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_24_090000) do
   end
 
   add_foreign_key "elementary_schools", "municipalities"
+  add_foreign_key "favorites", "source_listings"
+  add_foreign_key "favorites", "users"
   add_foreign_key "listing_images", "source_listings"
   add_foreign_key "municipalities", "prefectures"
   add_foreign_key "source_listings", "municipalities"

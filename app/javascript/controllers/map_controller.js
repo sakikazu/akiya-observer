@@ -5,8 +5,8 @@ const RECENT_DAYS = 7
 
 // 地図上に物件・小学校マーカーを描画し、距離表示を管理する。
 export default class extends Controller {
-  static targets = ["canvas", "count", "mode"]
-  static values = { listings: Array, schools: Array, missing: Array }
+  static targets = ["canvas", "count", "mode", "favorites"]
+  static values = { listings: Array, schools: Array, missing: Array, canFavorite: Boolean }
 
   // Leafletを初期化してレイヤーを用意する。
   connect() {
@@ -38,8 +38,12 @@ export default class extends Controller {
 
     this.handlePopupClick = this.handlePopupClick.bind(this)
     this.handleMapClick = this.handleMapClick.bind(this)
+    this.handleFavoritesClick = this.handleFavoritesClick.bind(this)
     this.map.getContainer().addEventListener("click", this.handlePopupClick)
     this.map.on("click", this.handleMapClick)
+    if (this.hasFavoritesTarget) {
+      this.favoritesTarget.addEventListener("click", this.handleFavoritesClick)
+    }
     this.renderMarkers()
     this.fitBounds()
     this.updateModeLabel()
@@ -49,6 +53,9 @@ export default class extends Controller {
     if (this.map) {
       this.map.getContainer().removeEventListener("click", this.handlePopupClick)
       this.map.off("click", this.handleMapClick)
+    }
+    if (this.hasFavoritesTarget) {
+      this.favoritesTarget.removeEventListener("click", this.handleFavoritesClick)
     }
   }
 
@@ -205,11 +212,15 @@ export default class extends Controller {
     const buildingArea = listing.building_area ? `建物面積: ${listing.building_area}` : "建物面積: 未登録"
     const updated = listing.source_updated_at ? `更新日: ${listing.source_updated_at}` : ""
     const status = listing.disappeared_at ? "掲載終了" : "掲載中"
-    const link = listing.url ? `<a href="${listing.url}" target="_blank" rel="noopener">詳細を見る</a>` : ""
+    const link = listing.url ? `<a href="${listing.url}" target="_blank" rel="noopener" class="popup-link">詳細を見る</a>` : ""
     const mapLink =
       listing.latitude && listing.longitude
-        ? `<a href="https://www.google.com/maps?q=${listing.latitude},${listing.longitude}" target="_blank" rel="noopener">Google Mapで見る</a>`
+        ? `<a href="https://www.google.com/maps?q=${listing.latitude},${listing.longitude}" target="_blank" rel="noopener" class="popup-link">Google Mapで見る</a>`
         : ""
+    const linkGroup = [link, mapLink].filter(Boolean).join("")
+    const updatedLine = updated ? `<p class="popup-meta">${updated}</p>` : ""
+    const linkGroupLine = linkGroup ? `<div class="popup-links">${linkGroup}</div>` : ""
+    const favoriteButton = this.favoriteButtonHtml(listing)
     const distance = resolvedNearest
       ? `最寄り小学校まで ${resolvedNearest.distance_km.toFixed(2)}km（直線）`
       : "最寄り小学校: 未登録"
@@ -219,15 +230,16 @@ export default class extends Controller {
         ${image}
         <div class="popup-body">
           <p class="popup-title">${listing.title || "物件名未登録"}</p>
-          <p class="popup-meta">${price} / ${layout}</p>
+          <p class="popup-meta">${price} / ${layout} / ${landArea} / ${buildingArea}</p>
           <p class="popup-meta">${address}</p>
-          <p class="popup-meta">${landArea}</p>
-          <p class="popup-meta">${buildingArea}</p>
-          <p class="popup-meta">${precisionLabel}・${status}</p>
+          <div class="popup-row">
+            <p class="popup-meta">${precisionLabel}</p>
+            <p class="popup-meta">${status}</p>
+          </div>
           <p class="popup-meta">${distance}</p>
-          <p class="popup-meta">${updated}</p>
-          ${link}
-          ${mapLink}
+          ${updatedLine}
+          ${linkGroupLine}
+          ${favoriteButton}
         </div>
       </div>
     `
@@ -448,6 +460,19 @@ export default class extends Controller {
   }
 
   handlePopupClick(event) {
+    const favoriteButton = event.target.closest("[data-favorite-toggle]")
+    if (favoriteButton) {
+      event.preventDefault()
+      const listingId = Number(favoriteButton.dataset.favoriteListingId)
+      const currentState = favoriteButton.dataset.favoriteState
+      const isFavorite = currentState === "1" ? true : currentState === "0" ? false : null
+      const listing = this.findListingById(listingId)
+      if (listing) {
+        this.toggleFavorite(listing, favoriteButton, isFavorite)
+      }
+      return
+    }
+
     const setButton = event.target.closest("[data-missing-set-representative]")
     if (setButton) {
       event.preventDefault()
@@ -487,11 +512,114 @@ export default class extends Controller {
     return this.missingValue.find((entry) => entry.municipality_id === municipalityId)
   }
 
+  favoriteButtonHtml(listing) {
+    if (!this.canFavoriteValue) return ""
+
+    const label = listing.favorite ? "お気に入り解除" : "お気に入り"
+    const stateClass = listing.favorite ? " is-active" : ""
+    const stateValue = listing.favorite ? "1" : "0"
+    return `<button type="button" class="favorite-button${stateClass}" data-favorite-toggle="1" data-favorite-listing-id="${listing.id}" data-favorite-state="${stateValue}">
+        ${label}
+      </button>`
+  }
+
+  async toggleFavorite(listing, button, buttonState = null) {
+    const token = document.querySelector("meta[name=\"csrf-token\"]")?.getAttribute("content")
+    if (!token) {
+      console.warn("CSRF token missing")
+      return
+    }
+
+    const currentFavorite = buttonState === null ? listing.favorite : buttonState
+    const nextFavorite = !currentFavorite
+    const method = nextFavorite ? "POST" : "DELETE"
+    try {
+      const response = await fetch(`/favorites/${listing.id}`, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": token,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`favorite update failed (${response.status})`)
+      }
+
+      this.setFavoriteState(listing.id, nextFavorite)
+      this.updateFavoriteButton(button, nextFavorite)
+    } catch (error) {
+      console.warn(error)
+    }
+  }
+
+  updateFavoriteButton(button, isFavorite) {
+    button.textContent = isFavorite ? "お気に入り解除" : "お気に入り"
+    button.classList.toggle("is-active", isFavorite)
+    button.dataset.favoriteState = isFavorite ? "1" : "0"
+  }
+
+  setFavoriteState(listingId, isFavorite) {
+    this.eachListing((listing) => {
+      if (listing.id === listingId) {
+        listing.favorite = isFavorite
+      }
+    })
+  }
+
+  findListingById(listingId) {
+    let found = null
+    this.eachListing((listing) => {
+      if (!found && listing.id === listingId) {
+        found = listing
+      }
+    })
+    return found
+  }
+
+  eachListing(callback) {
+    this.listingsValue.forEach(callback)
+    this.missingValue.forEach((missing) => {
+      (missing.listings || []).forEach(callback)
+    })
+  }
+
   handleMapClick(event) {
     if (!this.representativeMode || !this.representativeTarget) return
 
     const { lat, lng } = event.latlng
     this.saveRepresentativePoint(this.representativeTarget, lat, lng)
+  }
+
+  handleFavoritesClick(event) {
+    const item = event.target.closest("[data-favorite-listing-id]")
+    if (!item) return
+
+    const listingId = Number(item.dataset.favoriteListingId)
+    const latitude = Number(item.dataset.favoriteLatitude)
+    const longitude = Number(item.dataset.favoriteLongitude)
+    if (!listingId) return
+
+    const listing = this.findListingById(listingId)
+    if (!listing) return
+
+    if (Number.isFinite(latitude) && Number.isFinite(longitude) && latitude && longitude) {
+      this.map.setView([latitude, longitude], 14)
+      window.L.popup({ className: "listing-popup", autoClose: false, closeOnClick: false })
+        .setLatLng([latitude, longitude])
+        .setContent(this.popupHtml(listing))
+        .addTo(this.map)
+      return
+    }
+
+    const missingEntry = this.missingValue.find((entry) => (entry.listings || []).some((itemListing) => itemListing.id === listingId))
+    if (!missingEntry) return
+
+    this.map.setView([missingEntry.latitude, missingEntry.longitude], 12)
+    window.L.popup({ className: "listing-popup", autoClose: false, closeOnClick: false })
+      .setLatLng([missingEntry.latitude, missingEntry.longitude])
+      .setContent(this.popupHtml(listing, this.nearestSchoolFromCoords(missingEntry.latitude, missingEntry.longitude, listing.municipality_id)))
+      .addTo(this.map)
   }
 
   setRepresentativeMode(enabled, target = null) {

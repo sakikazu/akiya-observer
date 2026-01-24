@@ -16,4 +16,7 @@ Rails.application.routes.draw do
   get "listing_images/:id", to: "listing_images#show", as: :listing_image
 
   patch "municipalities/:id/representative_point", to: "municipalities#representative_point"
+
+  post "favorites/:source_listing_id", to: "favorites#create", as: :favorite
+  delete "favorites/:source_listing_id", to: "favorites#destroy"
 end
