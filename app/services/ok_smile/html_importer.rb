@@ -67,11 +67,17 @@ module OkSmile
 
       title = node.css("a.prop-title-link span.prop-title-link").map { |span| clean_text(span.text) }
         .reject(&:empty?).join(" ")
+      # 物件タイトルから市区町村名を抽出して紐付ける（県スコープあり）。
       access = clean_text(node.at_css(".access")&.text)
       price = parse_price(node.at_css(".price strong")&.text)
       tags = extract_tags(node)
       list_info = parse_list_info(node)
       source_updated_at = parse_unix_timestamp(node["data-upd-time"])
+      lat, lng = parse_map_coordinates(node)
+
+      prefecture = Prefecture.find_by(code: @prefecture_code) if @prefecture_code.present?
+      municipality = Municipality.find_by_text_match(title, prefecture: prefecture)
+      log("municipality not matched for listing #{external_id} (title: #{title})") if municipality.nil?
 
       listing = SourceListing.find_or_initialize_by(source_site: source_site, external_id: external_id)
       listing.assign_attributes(
@@ -87,6 +93,9 @@ module OkSmile
         building_coverage_ratio: list_info[:building_coverage_ratio],
         floor_area_ratio: list_info[:floor_area_ratio],
         source_updated_at: source_updated_at,
+        municipality_id: municipality&.id,
+        latitude: lat || listing.latitude,
+        longitude: lng || listing.longitude,
         first_seen_at: listing.first_seen_at || Time.current,
         last_seen_at: Time.current,
         last_checked_at: Time.current
@@ -155,6 +164,21 @@ module OkSmile
         end
       end
       info
+    end
+
+    # 一覧の map リンクから緯度経度を取得する。
+    def parse_map_coordinates(node)
+      href = node.at_css("a.map-icon")&.[]("href")
+      return [nil, nil] if href.to_s.strip.empty?
+
+      uri = URI.parse(href)
+      params = URI.decode_www_form(uri.query.to_s).to_h
+      coords = params["q"].to_s.split(",").map(&:strip)
+      return [nil, nil] if coords.size < 2
+
+      [coords[0].to_f, coords[1].to_f]
+    rescue URI::InvalidURIError
+      [nil, nil]
     end
 
     def parse_info_table(doc)

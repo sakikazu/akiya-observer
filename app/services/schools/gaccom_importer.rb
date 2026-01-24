@@ -18,7 +18,10 @@ module Schools
       html = fetch_html(@url)
       doc = Nokogiri::HTML(html)
       municipality = resolve_municipality(doc)
-      raise StandardError, "municipality not found" if municipality.nil?
+      if municipality.nil?
+        log("municipality not found for #{@url}")
+        raise StandardError, "municipality not found"
+      end
 
       schools = parse_school_blocks(doc, html)
       log("found #{schools.size} schools")
@@ -85,8 +88,11 @@ module Schools
       muni_name = normalize_municipality_name(muni_name)
       prefecture = pref_name ? Prefecture.find_by(name: pref_name) : prefecture_from_url
 
-      return Municipality.find_by(prefecture: prefecture, name: muni_name) if prefecture && muni_name
-      return Municipality.find_by(name: muni_name) if muni_name
+      if prefecture && muni_name
+        return Municipality.where(prefecture: prefecture, name: muni_name)
+          .or(Municipality.where(prefecture: prefecture, name_alias: muni_name)).first
+      end
+      return Municipality.find_by_name_or_alias(muni_name) if muni_name
 
       nil
     end
