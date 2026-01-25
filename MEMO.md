@@ -1,5 +1,10 @@
+## TODO
+- まだ物件のdisapeard_atは登録するロジックはない
+- これを登録するには、すべてのページをクロールし、そこに見つからなかったものをDBと照合して、日付を登録する必要がある
+
+## メモ
 - 物件
-    - 毎朝8時33分に、cronで、bin/rails crawl:ok_smile を実行
+    - 毎朝、cronで、bin/rails crawl:ok_smile を実行
     - https://www.ok-smile.jp/property/buy/area/list?prop-control=&sort1=ASRT13&sort2=&limit=100&ptm%5B%5D=9102&price_b_from=1000000&price_b_to=20000000&keyword=&eki_walk=&bus_walk=&land_from=&land_to=&bld_area_from=&bld_area_to=&built=
     - これをデフォルト検索とする
     - 条件：100万～2000万、中古戸建て、エリア未指定

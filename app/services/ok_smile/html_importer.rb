@@ -11,6 +11,7 @@ module OkSmile
   class HtmlImporter
     DEFAULT_BASE_URL = "https://www.ok-smile.jp"
     DEFAULT_DETAIL_DIR = "/tmp"
+    REQUEST_TIMEOUT_SECONDS = 5
     # 取り込み結果の画像はリポジトリ内のストレージに保存する。
     IMAGE_STORAGE_ROOT = "storage/listing_images/ok_smile"
     # 画像取得ごとに待機を入れて負荷を抑える。
@@ -322,7 +323,13 @@ module OkSmile
 
       log("リクエスト実行: #{url}")
       uri = URI.parse(url)
-      response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
+      response = Net::HTTP.start(
+        uri.host,
+        uri.port,
+        use_ssl: uri.scheme == "https",
+        open_timeout: REQUEST_TIMEOUT_SECONDS,
+        read_timeout: REQUEST_TIMEOUT_SECONDS
+      ) do |http|
         request = Net::HTTP::Get.new(uri.request_uri)
         request["User-Agent"] = @user_agent
         request["Referer"] = @base_url

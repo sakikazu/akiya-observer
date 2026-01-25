@@ -89,6 +89,8 @@ module OkSmile
       increment_request_count
       cmd = [
         "curl", "-L", "-sS", "--compressed",
+        "--connect-timeout", REQUEST_TIMEOUT_SECONDS.to_s,
+        "--max-time", REQUEST_TIMEOUT_SECONDS.to_s,
         "-H", "User-Agent: #{@user_agent}",
         "-H", "Accept: text/html,application/xhtml+xml",
         "-H", "Accept-Language: ja,en-US;q=0.9",

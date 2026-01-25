@@ -4,7 +4,7 @@ namespace :crawl do
     return cast_value(env_value, type, key) if env_value
 
     unless $stdin.tty?
-      return default unless required
+      return cast_value(default, type, key) if !required || !default.nil?
       raise ArgumentError, "#{key} is required"
     end
 
