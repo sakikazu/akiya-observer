@@ -41,7 +41,12 @@ namespace :crawl do
 
   desc "Crawl OK Smile listings via curl and save to DB (SEARCH_URL required)"
   task ok_smile: :environment do
-    search_url = prompt_env("SEARCH_URL", required: true, label: "検索URL (必須)")
+    search_url = prompt_env(
+      "SEARCH_URL",
+      default: "https://www.ok-smile.jp/property/buy/area/list?prop-control=&sort1=ASRT13&sort2=&limit=100&ptm%5B%5D=9102&price_b_from=1000000&price_b_to=20000000&keyword=&eki_walk=&bus_walk=&land_from=&land_to=&bld_area_from=&bld_area_to=&built=",
+      required: true,
+      label: "検索URL (必須)"
+    )
     fetch_detail = prompt_env("FETCH_DETAIL", default: "false", type: :boolean, label: "詳細ページも取得するか (true/false)")
     download_images = prompt_env("DOWNLOAD_IMAGES", default: "false", type: :boolean, label: "画像をダウンロードするか (true/false)")
     fetch_all = prompt_env("FETCH_ALL", default: "false", type: :boolean, label: "全ページを取得するか (true/false)")
@@ -60,7 +65,12 @@ namespace :crawl do
 
   desc "Crawl OK Smile listings and then geocode (SEARCH_URL required)"
   task ok_smile_with_geocode: :environment do
-    search_url = prompt_env("SEARCH_URL", required: true, label: "検索URL (必須)")
+    search_url = prompt_env(
+      "SEARCH_URL",
+      default: "https://www.ok-smile.jp/property/buy/area/list?prop-control=&sort1=ASRT13&sort2=&limit=100&ptm%5B%5D=9102&price_b_from=1000000&price_b_to=20000000&keyword=&eki_walk=&bus_walk=&land_from=&land_to=&bld_area_from=&bld_area_to=&built=",
+      required: true,
+      label: "検索URL (必須)"
+    )
     geocode_limit = prompt_env("GEOCODE_LIMIT", default: "200", type: :integer, label: "ジオコーディング件数の上限")
     geocode_throttle = prompt_env("GEOCODE_THROTTLE", default: "1.0", type: :float, label: "ジオコーディング間の待機秒数")
     fetch_detail = prompt_env("FETCH_DETAIL", default: "false", type: :boolean, label: "詳細ページも取得するか (true/false)")

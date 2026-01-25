@@ -1,0 +1,4 @@
+# OK Smile crawler (JST)
+# Run daily at 08:33 JST
+TZ=Asia/Tokyo
+33 8 * * * /home/sakikazu/dev/rails/akiya-observer/script/cron/ok_smile_daily.sh >> /home/sakikazu/dev/rails/akiya-observer/log/ok_smile_cron.log 2>&1
