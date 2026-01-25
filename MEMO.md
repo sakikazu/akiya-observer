@@ -1,0 +1,20 @@
+- 物件
+    - 毎朝8時33分に、cronで、bin/rails crawl:ok_smile を実行
+    - https://www.ok-smile.jp/property/buy/area/list?prop-control=&sort1=ASRT13&sort2=&limit=100&ptm%5B%5D=9102&price_b_from=1000000&price_b_to=20000000&keyword=&eki_walk=&bus_walk=&land_from=&land_to=&bld_area_from=&bld_area_to=&built=
+    - これをデフォルト検索とする
+    - 条件：100万～2000万、中古戸建て、エリア未指定
+    - 「登録日新しい順」
+- 小学校
+    - bin/rails schools:gaccom_import URL=https://www.gaccom.jp/search/p33/c210_public_es/
+    - 2026/01/24、岡山県のすべての小学校はインポート済み
+- 「住まいる岡山のクローリング
+    - 画像はダウンロードしない
+    - ページャーのページ指定で、自動でページを進んでリクエストしない
+    - FETCH_ALL=true で、external_idが同じものが来た時に停止するのではなく、そのページすべての物件を取得する
+    - `curl failed (6): curl: (6) Could not resolve host: www.ok-smile.jp` というエラーが出るようになってしまった。最後のpage=23 にて
+    - https://www.yahoo.co.jp/ も同様になってしまった
+    - Codex経由じゃなきゃ大丈夫だった
+    - クローリング後はブラウザからのアクセスも遅くなる件は、そのときスマホのネットワークなら普通にアクセスできたので、IP単位で遅くされてるだけっぽい。サイト全体は落としてない
+    - 「住まいる岡山」は、一回生のcurlを打つだけで、そのIPアドレスは排除されるようだ。数時間で戻る
+      - ブラウザから見ると、ERR_CONNECTION_TIMED_OUTエラーとなる
+    - そもそも、画像は自分のサイトで一気に表示とかしないのであれば、都度、表示時にリモートアクセスすればいいので、現在の画像URLだけ保存して、ファイルは不要なのか
