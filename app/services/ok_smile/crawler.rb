@@ -7,7 +7,7 @@ module OkSmile
     DEFAULT_PREFECTURE_CODE = "33"
     DEFAULT_PAGE_REQUEST_SLEEP_RANGE = (3.0..7.0)
 
-    def initialize(search_url:, page_throttle_seconds: DEFAULT_PAGE_THROTTLE_SECONDS, fetch_detail: false, prefecture_code: DEFAULT_PREFECTURE_CODE, page_request_sleep_range: DEFAULT_PAGE_REQUEST_SLEEP_RANGE, fetch_all: false, start_page: 1, max_pages: nil, **kwargs)
+    def initialize(search_url:, page_throttle_seconds: DEFAULT_PAGE_THROTTLE_SECONDS, fetch_detail: false, prefecture_code: DEFAULT_PREFECTURE_CODE, page_request_sleep_range: DEFAULT_PAGE_REQUEST_SLEEP_RANGE, fetch_all: false, start_page: 1, max_pages: nil, on_listing: nil, **kwargs)
       super(prefecture_code: prefecture_code, **kwargs)
       @search_url = search_url
       @page_throttle_seconds = page_throttle_seconds
@@ -16,6 +16,7 @@ module OkSmile
       @page_request_sleep_range = (20.0..20.0)
       @start_page = start_page
       @max_pages = max_pages
+      @on_listing = on_listing
     end
 
     def call
@@ -40,6 +41,7 @@ module OkSmile
           max_on_page = [max_on_page, list_updated_at].compact.max
 
           listing = upsert_from_list(node, source_site)
+          @on_listing&.call(listing)
           next if listing.url.blank? || !@fetch_detail
 
           log("request #{listing.url}")

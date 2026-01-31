@@ -41,6 +41,11 @@ namespace :crawl do
 
   desc "Crawl OK Smile listings via curl and save to DB (SEARCH_URL required)"
   task ok_smile: :environment do
+    record_daily = prompt_env("DISAPPEAR_CHECK", default: "false", type: :boolean, label: "全件クロールして消失判定用に記録するか (true/false)")
+    crawled_on = record_daily ? Date.current.to_s : nil
+    crawl_record = nil
+    collected_external_ids = []
+
     search_url = prompt_env(
       "SEARCH_URL",
       default: "https://www.ok-smile.jp/property/buy/area/list?prop-control=&sort1=ASRT13&sort2=&limit=100&ptm%5B%5D=9102&price_b_from=1000000&price_b_to=20000000&keyword=&eki_walk=&bus_walk=&land_from=&land_to=&bld_area_from=&bld_area_to=&built=",
@@ -50,8 +55,18 @@ namespace :crawl do
     fetch_detail = prompt_env("FETCH_DETAIL", default: "false", type: :boolean, label: "詳細ページも取得するか (true/false)")
     download_images = prompt_env("DOWNLOAD_IMAGES", default: "false", type: :boolean, label: "画像をダウンロードするか (true/false)")
     fetch_all = prompt_env("FETCH_ALL", default: "false", type: :boolean, label: "全ページを取得するか (true/false)")
-    start_page = prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
-    max_pages = prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+    start_page = fetch_all ? 1 : prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
+    max_pages = fetch_all ? nil : prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+
+    if record_daily
+      source_site = SourceSite.find_by!(code: "ok-smile")
+      crawl_record = DailyCrawl.find_or_initialize_by(source_site: source_site, crawled_on: Date.parse(crawled_on))
+      crawl_record.assign_attributes(
+        status: "running",
+        started_at: Time.current
+      )
+      crawl_record.save!
+    end
 
     OkSmile::Crawler.new(
       search_url: search_url,
@@ -59,12 +74,33 @@ namespace :crawl do
       download_images: download_images,
       fetch_all: fetch_all,
       start_page: start_page,
-      max_pages: max_pages
+      max_pages: max_pages,
+      on_listing: ->(listing) { collected_external_ids << listing.external_id if record_daily }
     ).call
+
+    if record_daily && crawl_record
+      crawl_record.assign_attributes(
+        status: "completed",
+        finished_at: Time.current,
+        listing_count: collected_external_ids.uniq.size,
+        external_ids: collected_external_ids.uniq
+      )
+      crawl_record.save!
+    end
+  rescue StandardError => e
+    if record_daily && crawl_record
+      crawl_record.update(status: "failed", finished_at: Time.current)
+    end
+    raise e
   end
 
   desc "Crawl OK Smile listings and then geocode (SEARCH_URL required)"
   task ok_smile_with_geocode: :environment do
+    record_daily = prompt_env("DISAPPEAR_CHECK", default: "false", type: :boolean, label: "全件クロールして消失判定用に記録するか (true/false)")
+    crawled_on = record_daily ? Date.current.to_s : nil
+    crawl_record = nil
+    collected_external_ids = []
+
     search_url = prompt_env(
       "SEARCH_URL",
       default: "https://www.ok-smile.jp/property/buy/area/list?prop-control=&sort1=ASRT13&sort2=&limit=100&ptm%5B%5D=9102&price_b_from=1000000&price_b_to=20000000&keyword=&eki_walk=&bus_walk=&land_from=&land_to=&bld_area_from=&bld_area_to=&built=",
@@ -76,8 +112,18 @@ namespace :crawl do
     fetch_detail = prompt_env("FETCH_DETAIL", default: "false", type: :boolean, label: "詳細ページも取得するか (true/false)")
     download_images = prompt_env("DOWNLOAD_IMAGES", default: "false", type: :boolean, label: "画像をダウンロードするか (true/false)")
     fetch_all = prompt_env("FETCH_ALL", default: "false", type: :boolean, label: "全ページを取得するか (true/false)")
-    start_page = prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
-    max_pages = prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+    start_page = fetch_all ? 1 : prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
+    max_pages = fetch_all ? nil : prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+
+    if record_daily
+      source_site = SourceSite.find_by!(code: "ok-smile")
+      crawl_record = DailyCrawl.find_or_initialize_by(source_site: source_site, crawled_on: Date.parse(crawled_on))
+      crawl_record.assign_attributes(
+        status: "running",
+        started_at: Time.current
+      )
+      crawl_record.save!
+    end
 
     OkSmile::Crawler.new(
       search_url: search_url,
@@ -85,9 +131,25 @@ namespace :crawl do
       download_images: download_images,
       fetch_all: fetch_all,
       start_page: start_page,
-      max_pages: max_pages
+      max_pages: max_pages,
+      on_listing: ->(listing) { collected_external_ids << listing.external_id if record_daily }
     ).call
 
+    if record_daily && crawl_record
+      crawl_record.assign_attributes(
+        status: "completed",
+        finished_at: Time.current,
+        listing_count: collected_external_ids.uniq.size,
+        external_ids: collected_external_ids.uniq
+      )
+      crawl_record.save!
+    end
+
     Geocoding::SourceListingGeocoder.new(throttle_seconds: geocode_throttle).call(limit: geocode_limit)
+  rescue StandardError => e
+    if record_daily && crawl_record
+      crawl_record.update(status: "failed", finished_at: Time.current)
+    end
+    raise e
   end
 end

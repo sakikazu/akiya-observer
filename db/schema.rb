@@ -10,7 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_24_103000) do
+ActiveRecord::Schema[7.2].define(version: 2026_01_31_120000) do
+  create_table "daily_crawls", force: :cascade do |t|
+    t.date "crawled_on", null: false
+    t.integer "source_site_id", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.integer "listing_count", default: 0, null: false
+    t.json "external_ids", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source_site_id", "crawled_on"], name: "index_daily_crawls_on_source_site_id_and_crawled_on", unique: true
+    t.index ["source_site_id"], name: "index_daily_crawls_on_source_site_id"
+  end
+
   create_table "elementary_schools", force: :cascade do |t|
     t.integer "municipality_id", null: false
     t.string "name", null: false
@@ -130,6 +144,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_24_103000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "daily_crawls", "source_sites"
   add_foreign_key "elementary_schools", "municipalities"
   add_foreign_key "favorites", "source_listings"
   add_foreign_key "favorites", "users"
