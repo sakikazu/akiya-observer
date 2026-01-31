@@ -1,0 +1,43 @@
+<div class="report-page">
+  <header class="report-hero">
+    <p class="report-eyebrow">Akiya Observer</p>
+    <h1>市区町村ごとの週次物件サマリー</h1>
+    <h2><%= @prefecture.name %></h2>
+    <p class="report-subtitle">2026/01/26 からの週次集計（新規/消失/総件数）</p>
+  </header>
+
+  <% @weeks.each do |week| %>
+    <% counts = @weekly_counts[week[:key]] %>
+    <section class="report-week">
+      <h3><%= "#{week[:start_date]}〜#{week[:end_date]}" %></h3>
+      <div class="report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>市区町村</th>
+              <th>新規</th>
+              <th>消失</th>
+              <th>平均掲載日数</th>
+              <th>総件数</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @municipalities.each do |municipality| %>
+              <% new_count = counts[:new][municipality.id] || 0 %>
+              <% disappeared_count = counts[:disappeared][municipality.id] || 0 %>
+              <% avg_days = counts[:avg_days_to_disappear][municipality.id] %>
+              <% total_count = counts[:total][municipality.id] || 0 %>
+              <tr>
+                <td><%= municipality.name %></td>
+                <td><%= new_count %></td>
+                <td><%= disappeared_count %></td>
+                <td><%= avg_days ? "#{avg_days}日" : "-" %></td>
+                <td><%= total_count %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
+</div>

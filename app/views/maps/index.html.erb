@@ -21,6 +21,9 @@
         住所精度と更新日を合わせて確認し、供給の偏りを一目で把握します。
       </p>
       <div class="map-controls">
+        <div>
+          <%= link_to "週次レポート（市区町村別）", reports_municipality_weekly_path %>
+        </div>
         <label class="toggle">
           <input type="checkbox" data-action="map#toggleDisappeared">
           <span>掲載終了も表示</span>

@@ -1,0 +1,101 @@
+.report-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 36px 28px 60px;
+}
+
+.report-hero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+  margin-bottom: 24px;
+}
+
+.report-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  color: var(--slate-500);
+  margin-bottom: 8px;
+}
+
+.report-hero h1 {
+  font-family: "Space Grotesk", "Noto Sans JP", sans-serif;
+  font-size: 30px;
+  margin: 0 0 6px;
+}
+
+.report-hero h2 {
+  font-size: 18px;
+  color: var(--slate-700);
+  margin: 0 0 10px;
+}
+
+.report-subtitle {
+  margin: 0;
+  color: var(--ink-700);
+}
+
+.report-week {
+  margin-bottom: 28px;
+}
+
+.report-week h3 {
+  font-size: 16px;
+  margin: 0 0 10px;
+  color: var(--ink-900);
+}
+
+.report-table {
+  background: #fff;
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  overflow-x: auto;
+}
+
+.report-table table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.report-table thead th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--slate-500);
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.report-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  font-weight: 600;
+  color: var(--slate-700);
+}
+
+.report-table tbody tr:nth-child(2n) td {
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.report-table tbody tr:hover td {
+  background: rgba(254, 243, 199, 0.5);
+}
+
+@media (max-width: 768px) {
+  .report-page {
+    padding: 24px 16px 48px;
+  }
+
+  .report-hero h1 {
+    font-size: 24px;
+  }
+
+  .report-hero {
+    padding: 20px 18px;
+  }
+}

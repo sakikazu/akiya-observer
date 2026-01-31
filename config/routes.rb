@@ -19,4 +19,6 @@ Rails.application.routes.draw do
 
   post "favorites/:source_listing_id", to: "favorites#create", as: :favorite
   delete "favorites/:source_listing_id", to: "favorites#destroy"
+
+  get "reports/municipality_weekly", to: "reports#municipality_weekly"
 end
