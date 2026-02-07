@@ -327,6 +327,40 @@ body {
   text-align: left;
   border-radius: 8px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.missing-list__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.missing-list__date {
+  font-size: 11px;
+  color: var(--slate-500);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex: 0 1 auto;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.missing-list__date::before {
+  content: "⏱";
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.8;
 }
 
 .missing-list__item:hover {

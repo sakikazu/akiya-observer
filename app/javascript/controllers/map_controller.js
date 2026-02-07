@@ -210,7 +210,6 @@ export default class extends Controller {
     const address = listing.address || "住所未登録"
     const landArea = listing.land_area ? `土地面積: ${listing.land_area}` : "土地面積: 未登録"
     const buildingArea = listing.building_area ? `建物面積: ${listing.building_area}` : "建物面積: 未登録"
-    const updated = listing.source_updated_at ? `更新日: ${listing.source_updated_at}` : ""
     const status = listing.disappeared_at ? "掲載終了" : "掲載中"
     const link = listing.url ? `<a href="${listing.url}" target="_blank" rel="noopener" class="popup-link">詳細を見る</a>` : ""
     const mapLink =
@@ -218,7 +217,8 @@ export default class extends Controller {
         ? `<a href="https://www.google.com/maps?q=${listing.latitude},${listing.longitude}" target="_blank" rel="noopener" class="popup-link">Google Mapで見る</a>`
         : ""
     const linkGroup = [link, mapLink].filter(Boolean).join("")
-    const updatedLine = updated ? `<p class="popup-meta">${updated}</p>` : ""
+    const firstSeenLine = this.metaLine("初回掲載日", listing.first_seen_at)
+    const updatedLine = this.metaLine("更新日", listing.source_updated_at)
     const linkGroupLine = linkGroup ? `<div class="popup-links">${linkGroup}</div>` : ""
     const favoriteButton = this.favoriteButtonHtml(listing)
     const distance = resolvedNearest
@@ -237,6 +237,7 @@ export default class extends Controller {
             <p class="popup-meta">${status}</p>
           </div>
           <p class="popup-meta">${distance}</p>
+          ${firstSeenLine}
           ${updatedLine}
           ${linkGroupLine}
           ${favoriteButton}
@@ -440,11 +441,17 @@ export default class extends Controller {
   }
 
   missingListItems(missing, listings) {
-    return listings.map((listing) => `
+    const sorted = [...listings].sort((a, b) => this.listingFirstSeenTime(b) - this.listingFirstSeenTime(a))
+    return sorted.map((listing) => {
+      const title = this.truncateText(listing.title, 20, "物件名未登録")
+      const firstSeen = listing.first_seen_at || "未登録"
+      return `
         <button type="button" class="missing-list__item" data-missing-municipality-id="${missing.municipality_id}" data-missing-listing-id="${listing.id}">
-          ${listing.title || "物件名未登録"}
+          <span class="missing-list__title">${title}</span>
+          <span class="missing-list__date">${firstSeen}</span>
         </button>
-      `).join("")
+      `
+    }).join("")
   }
 
   missingMoreLabel(missing) {
@@ -457,6 +464,27 @@ export default class extends Controller {
     return missing.representative_set
       ? "代表点（手動設定）"
       : "代表点（市区町村内の既知座標平均）"
+  }
+
+  // タイトル文字列を指定長で省略する。
+  truncateText(text, limit, fallback) {
+    const value = text || fallback
+    const chars = Array.from(value)
+    if (chars.length <= limit) return value
+    return `${chars.slice(0, limit).join("")}…`
+  }
+
+  // 初回掲載日のソート用タイムスタンプを返す。
+  listingFirstSeenTime(listing) {
+    if (!listing.first_seen_at) return 0
+    const time = new Date(listing.first_seen_at).getTime()
+    return Number.isNaN(time) ? 0 : time
+  }
+
+  // メタ情報の表示行を生成する。
+  metaLine(label, value) {
+    if (!value) return ""
+    return `<p class="popup-meta">${label}: ${value}</p>`
   }
 
   handlePopupClick(event) {
