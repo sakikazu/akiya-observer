@@ -24,6 +24,15 @@
         <div>
           <%= link_to "週次レポート（市区町村別）", reports_municipality_weekly_path %>
         </div>
+        <div class="map-filter">
+          <label for="municipality-select">市区町村で絞り込み</label>
+          <select id="municipality-select" data-action="map#changeMunicipality" data-map-target="municipalitySelect">
+            <option value="">すべての市区町村</option>
+            <% @municipality_options.each do |municipality| %>
+              <option value="<%= municipality[:id] %>"><%= municipality[:name] %>（<%= municipality[:count] %>）</option>
+            <% end %>
+          </select>
+        </div>
         <label class="toggle">
           <input type="checkbox" data-action="map#toggleDisappeared">
           <span>掲載終了も表示</span>

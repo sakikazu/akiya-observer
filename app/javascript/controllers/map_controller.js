@@ -5,7 +5,7 @@ const RECENT_DAYS = 7
 
 // 地図上に物件・小学校マーカーを描画し、距離表示を管理する。
 export default class extends Controller {
-  static targets = ["canvas", "count", "mode", "favorites"]
+  static targets = ["canvas", "count", "mode", "favorites", "municipalitySelect"]
   static values = { listings: Array, schools: Array, missing: Array, canFavorite: Boolean }
 
   // Leafletを初期化してレイヤーを用意する。
@@ -20,6 +20,7 @@ export default class extends Controller {
     this.includeRecentOnly = false
     this.representativeMode = false
     this.representativeTarget = null
+    this.selectedMunicipalityId = this.initialMunicipalityId()
     this.map = window.L.map(this.canvasTarget, {
       zoomControl: false,
       minZoom: 5,
@@ -88,6 +89,15 @@ export default class extends Controller {
     this.fitBounds()
   }
 
+  // 市区町村の絞り込みを更新する。
+  changeMunicipality(event) {
+    const value = event.target.value
+    const parsed = value ? Number(value) : null
+    this.selectedMunicipalityId = Number.isNaN(parsed) ? null : parsed
+    this.renderMarkers()
+    this.fitBounds()
+  }
+
   // 座標未取得の市区町村レイヤーの表示を切り替える。
   toggleMissing(event) {
     this.includeMissing = event.target.checked
@@ -136,7 +146,7 @@ export default class extends Controller {
       }
     })
 
-    this.schoolsValue.forEach((school) => {
+    this.filteredSchools().forEach((school) => {
       if (!school.latitude || !school.longitude) return
 
       const marker = window.L.circleMarker([school.latitude, school.longitude], {
@@ -169,7 +179,7 @@ export default class extends Controller {
       .map((listing) => [listing.latitude, listing.longitude])
 
     if (this.includeMissing) {
-      this.missingValue.forEach((missing) => {
+      this.filteredMissing().forEach((missing) => {
         if (missing.latitude && missing.longitude) {
           coords.push([missing.latitude, missing.longitude])
         }
@@ -392,13 +402,15 @@ export default class extends Controller {
   }
 
   totalMissingCount() {
-    return this.missingValue.reduce((sum, missing) => sum + (missing.count || 0), 0)
+    return this.filteredMissing().reduce((sum, missing) => sum + (missing.count || 0), 0)
   }
 
   filteredListings() {
-    if (!this.includeRecentOnly) return this.listingsValue
+    let listings = this.listingsValue
+    listings = this.filteredByMunicipality(listings)
+    if (!this.includeRecentOnly) return listings
 
-    return this.listingsValue.filter((listing) => this.isRecentListing(listing))
+    return listings.filter((listing) => this.isRecentListing(listing))
   }
 
   isRecentListing(listing) {
@@ -419,7 +431,7 @@ export default class extends Controller {
   }
 
   addMissingMarkers() {
-    this.missingValue.forEach((missing) => {
+    this.filteredMissing().forEach((missing) => {
       if (!missing.latitude || !missing.longitude) return
 
       const marker = window.L.marker([missing.latitude, missing.longitude], {
@@ -429,6 +441,27 @@ export default class extends Controller {
       marker.bindPopup(this.missingPopupHtml(missing), { className: "listing-popup" })
       marker.addTo(this.missingLayer)
     })
+  }
+
+  // 絞り込み条件に合致する未取得市区町村のみ返す。
+  filteredMissing() {
+    if (!this.selectedMunicipalityId) return this.missingValue
+
+    return this.missingValue.filter((missing) => missing.municipality_id === this.selectedMunicipalityId)
+  }
+
+  // 絞り込み条件に合致する小学校のみ返す。
+  filteredSchools() {
+    if (!this.selectedMunicipalityId) return this.schoolsValue
+
+    return this.schoolsValue.filter((school) => school.municipality_id === this.selectedMunicipalityId)
+  }
+
+  // 絞り込み条件に合致する物件のみ返す。
+  filteredByMunicipality(listings) {
+    if (!this.selectedMunicipalityId) return listings
+
+    return listings.filter((listing) => listing.municipality_id === this.selectedMunicipalityId)
   }
 
   missingActionButton(missing) {
@@ -666,6 +699,14 @@ export default class extends Controller {
       this.modeTarget.textContent = ""
       this.canvasTarget.classList.remove("is-placing")
     }
+  }
+
+  initialMunicipalityId() {
+    if (!this.hasMunicipalitySelectTarget) return null
+
+    const value = this.municipalitySelectTarget.value
+    const parsed = value ? Number(value) : null
+    return Number.isNaN(parsed) ? null : parsed
   }
 
   async saveRepresentativePoint(missing, latitude, longitude) {

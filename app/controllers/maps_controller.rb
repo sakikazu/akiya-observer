@@ -8,6 +8,7 @@ class MapsController < ApplicationController
     @map_listings = listings.where.not(latitude: nil, longitude: nil).map { |listing| map_payload(listing, favorite_ids) }
     @map_schools = ElementarySchool.where.not(latitude: nil, longitude: nil).map { |school| school_payload(school) }
     @map_missing_municipalities = missing_municipality_payloads(listings, favorite_ids)
+    @municipality_options = municipality_options(listings)
   end
 
   private
@@ -136,5 +137,16 @@ class MapsController < ApplicationController
     return listing_image_path(image) if image.local_path.present?
 
     image.remote_url
+  end
+
+  # 地図サイドバーの市区町村セレクト用の一覧を作る。
+  def municipality_options(listings)
+    counts = listings.where.not(municipality_id: nil).group(:municipality_id).count
+    return [] if counts.empty?
+
+    Municipality.where(id: counts.keys)
+      .order(:name)
+      .pluck(:id, :name)
+      .map { |(id, name)| { id: id, name: name, count: counts[id] } }
   end
 end

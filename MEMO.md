@@ -2,10 +2,14 @@
 - まだ物件のdisapeard_atは登録するロジックはない
 - これを登録するには、すべてのページをクロールし、そこに見つからなかったものをDBと照合して、日付を登録する必要がある
 
-## disappeared_at設定するとき
-- 全件クロール時のみ daily_crawls に当日分を記録する（`DISAPPEAR_CHECK=true`）
-- 日次記録は `external_ids` 配列（uniq済み）と件数を保存する
-- `bin/rails disappear:mark` を実行すると今日分の daily_crawls と照合して更新
+## disappeared_atを登録するとき（物件消失日）
+- 概要：全件クロール時に、存在するすべての物件external_idを保存(daily_crawls)しておき、その後、disappear:markを実行することで、disappeared_atが登録される
+- 手順
+  - bin/rails crawl:ok_smile で「全件クロールして消失判定用に記録するか」をtrueで、全件クロール
+  - `bin/rails disappear:mark` を実行（今日分の daily_crawls と照合して更新）
+- 詳細
+  - 全件クロール時のみ daily_crawls(日次記録) に当日分を記録する（`DISAPPEAR_CHECK=true`）
+  - daily_crawlsは `external_ids` 配列（uniq済み）と件数を保存する
   - 今日の配列に無いものは `disappeared_at=今日`
   - 今日の配列にあるものは `disappeared_at=nil`（再掲載対応）
   - 今日分の daily_crawls が無ければ何もせず終了する
