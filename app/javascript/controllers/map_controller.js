@@ -120,8 +120,7 @@ export default class extends Controller {
       if (!listing.latitude || !listing.longitude) return
 
       const isDisappeared = Boolean(listing.disappeared_at)
-      const precision = listing.address_precision === "block" ? "precise" : "area"
-      const markerColor = isDisappeared ? "#9ca3af" : precision === "precise" ? "#f97316" : "#0ea5e9"
+      const markerColor = isDisappeared ? "#9ca3af" : "#0ea5e9"
       const nearest = this.nearestSchool(listing)
       const marker = window.L.circleMarker([listing.latitude, listing.longitude], {
         radius: isDisappeared ? 8 : 10,
@@ -211,7 +210,6 @@ export default class extends Controller {
   // 物件ポップアップのHTMLを生成する。
   popupHtml(listing, nearestSchool = null) {
     const resolvedNearest = nearestSchool || this.nearestSchool(listing)
-    const precisionLabel = listing.address_precision === "block" ? "番地あり" : "番地なし"
     const image = listing.image_url
       ? `<img src="${listing.image_url}" alt="${listing.title}" class="popup-image">`
       : `<div class="popup-image placeholder"></div>`
@@ -244,7 +242,6 @@ export default class extends Controller {
           <p class="popup-meta">${price} / ${layout} / ${landArea} / ${buildingArea}</p>
           <p class="popup-meta">${address}</p>
           <div class="popup-row">
-            <p class="popup-meta">${precisionLabel}</p>
             <p class="popup-meta">${status}</p>
           </div>
           <p class="popup-meta">${distance}</p>
