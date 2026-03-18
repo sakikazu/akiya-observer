@@ -34,7 +34,8 @@ class MapsController < ApplicationController
       first_seen_at: listing.first_seen_at&.to_date&.to_s,
       favorite: favorite_ids ? favorite_ids.include?(listing.id) : false,
       disappeared_at: listing.disappeared_at&.to_date&.to_s,
-      image_url: image_url(image)
+      image_url: image_url(image),
+      highlight_text: listing.highlight_text
     }
   end
 

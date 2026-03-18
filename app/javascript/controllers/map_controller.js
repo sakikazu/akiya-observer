@@ -229,6 +229,7 @@ export default class extends Controller {
     const linkGroup = [link, mapLink].filter(Boolean).join("")
     const firstSeenLine = this.metaLine("初回掲載日", listing.first_seen_at)
     const updatedLine = this.metaLine("更新日", listing.source_updated_at)
+    const highlightLine = listing.highlight_text ? `<p class="popup-meta">${listing.highlight_text}</p>` : ""
     const linkGroupLine = linkGroup ? `<div class="popup-links">${linkGroup}</div>` : ""
     const favoriteButton = this.favoriteButtonHtml(listing)
     const distance = resolvedNearest
@@ -249,6 +250,7 @@ export default class extends Controller {
           <p class="popup-meta">${distance}</p>
           ${firstSeenLine}
           ${updatedLine}
+          ${highlightLine}
           ${linkGroupLine}
           ${favoriteButton}
         </div>
