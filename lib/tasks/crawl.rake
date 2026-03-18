@@ -152,4 +152,63 @@ namespace :crawl do
     end
     raise e
   end
+
+  desc "Crawl Cocosma Ina listings via curl and save to DB (SEARCH_URL required)"
+  task cocosma_ina: :environment do
+    record_daily = prompt_env("DISAPPEAR_CHECK", default: "false", type: :boolean, label: "全件クロールして消失判定用に記録するか (true/false)")
+    crawled_on = record_daily ? Date.current.to_s : nil
+    crawl_record = nil
+    collected_external_ids = []
+
+    search_url = prompt_env(
+      "SEARCH_URL",
+      # 長野県伊那の中古物件、3LDK以上の間取り、新着順の検索URL。
+      default: "https://ina.fudousan.co.jp/lists/2/1/q?listtype=tab-detail&area=&key=&ss=&sc=&k_l=&k_h=&la_l=&la_h=&ll_l=&ll_h=&p_h=&k_d=&r_c%5B8%5D=3LDK&r_c%5B9%5D=4K&r_c%5B10%5D=4DK&r_c%5B11%5D=4LDK&r_cmax=%E4%BB%A5%E4%B8%8A&scode%5B1212%5D=%E4%B8%AD%E5%8F%A4%E4%BD%8F%E5%AE%85&scode%5B1223%5D=%E4%B8%AD%E5%8F%A4%E5%88%A5%E8%8D%98&dr=1&ev=1&rs=50",
+      required: true,
+      label: "検索URL (必須)"
+    )
+    download_images = prompt_env("DOWNLOAD_IMAGES", default: "false", type: :boolean, label: "画像をダウンロードするか (true/false)")
+    fetch_all = prompt_env("FETCH_ALL", default: "false", type: :boolean, label: "全ページを取得するか (true/false)")
+    start_page = fetch_all ? 1 : prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
+    max_pages = fetch_all ? nil : prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+
+    if record_daily
+      source_site = SourceSite.find_or_create_by!(code: "cocosma-ina") do |site|
+        site.name = "Cocosma Ina"
+        site.base_url = "https://ina.fudousan.co.jp"
+        site.active = true
+      end
+      crawl_record = DailyCrawl.find_or_initialize_by(source_site: source_site, crawled_on: Date.parse(crawled_on))
+      crawl_record.assign_attributes(
+        status: "running",
+        started_at: Time.current
+      )
+      crawl_record.save!
+    end
+
+    CocosmaIna::Crawler.new(
+      search_url: search_url,
+      fetch_detail: true,
+      download_images: download_images,
+      fetch_all: fetch_all,
+      start_page: start_page,
+      max_pages: max_pages,
+      on_listing: ->(listing) { collected_external_ids << listing.external_id if record_daily }
+    ).call
+
+    if record_daily && crawl_record
+      crawl_record.assign_attributes(
+        status: "completed",
+        finished_at: Time.current,
+        listing_count: collected_external_ids.uniq.size,
+        external_ids: collected_external_ids.uniq
+      )
+      crawl_record.save!
+    end
+  rescue StandardError => e
+    if record_daily && crawl_record
+      crawl_record.update(status: "failed", finished_at: Time.current)
+    end
+    raise e
+  end
 end

@@ -144,9 +144,16 @@ class MapsController < ApplicationController
     counts = listings.where.not(municipality_id: nil).group(:municipality_id).count
     return [] if counts.empty?
 
-    Municipality.where(id: counts.keys)
-      .order(:name)
-      .pluck(:id, :name)
-      .map { |(id, name)| { id: id, name: name, count: counts[id] } }
+    Municipality.joins(:prefecture)
+      .where(id: counts.keys)
+      .order("prefectures.code ASC", "municipalities.name ASC")
+      .pluck("municipalities.id", "prefectures.name", "municipalities.name")
+      .map do |(id, prefecture_name, municipality_name)|
+        {
+          id: id,
+          name: "#{prefecture_name} #{municipality_name}",
+          count: counts[id]
+        }
+      end
   end
 end

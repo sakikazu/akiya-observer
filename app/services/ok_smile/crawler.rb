@@ -1,5 +1,3 @@
-require "open3"
-
 module OkSmile
   # curl で取得した HTML を直接解析して DB に保存する（岡山県スコープ）。
   class Crawler < HtmlImporter
@@ -17,6 +15,12 @@ module OkSmile
       @start_page = start_page
       @max_pages = max_pages
       @on_listing = on_listing
+      @curl_client = HtmlFetching::CurlClient.new(
+        user_agent: @user_agent,
+        timeout_seconds: REQUEST_TIMEOUT_SECONDS,
+        logger: @logger,
+        sleep_range: @page_request_sleep_range
+      )
     end
 
     def call
@@ -89,40 +93,7 @@ module OkSmile
 
     def fetch_html(url, referer:)
       increment_request_count
-      cmd = [
-        "curl", "-L", "-sS", "--compressed",
-        "--connect-timeout", REQUEST_TIMEOUT_SECONDS.to_s,
-        "--max-time", REQUEST_TIMEOUT_SECONDS.to_s,
-        "-H", "User-Agent: #{@user_agent}",
-        "-H", "Accept: text/html,application/xhtml+xml",
-        "-H", "Accept-Language: ja,en-US;q=0.9",
-        "-H", "Accept-Encoding: gzip, deflate, br",
-        "-H", "Sec-Fetch-Site: none",
-        "-H", "Sec-Fetch-Mode: navigate",
-        "-H", "Sec-Fetch-User: ?1",
-        "-H", "Sec-Fetch-Dest: document",
-        "-H", "Referer: https://www.google.com/",
-        "-w", "\nHTTPSTATUS:%{http_code}",
-        url
-      ]
-
-      stdout, stderr, status = Open3.capture3(*cmd)
-      if status.success?
-        html, http_status = stdout.split("\nHTTPSTATUS:")
-        code = http_status.to_i
-        if code == 200
-          sleep(rand(@page_request_sleep_range))
-          html
-        else
-          message = "curl returned HTTP #{code} for #{url}"
-          log(message)
-          raise StandardError, message
-        end
-      else
-        message = "curl failed (#{status.exitstatus}): #{stderr}"
-        log(message)
-        raise StandardError, message
-      end
+      @curl_client.fetch(url, referer: referer)
     end
 
     def next_page_available?(doc, next_page)
