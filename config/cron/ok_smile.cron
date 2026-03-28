@@ -1,8 +1,0 @@
-# OK Smile crawler (JST)
-# Run daily at 07:33 JST
-# 時刻を変更する場合:
-# 1) このファイルの時刻を変更
-# 2) `crontab /home/sakikazu/dev/rails/akiya-observer/config/cron/ok_smile.cron` を再実行
-# 3) `crontab -l` で反映確認
-TZ=Asia/Tokyo
-33 7 * * * /home/sakikazu/dev/rails/akiya-observer/script/cron/ok_smile_daily.sh >> /home/sakikazu/dev/rails/akiya-observer/log/ok_smile_cron.log 2>&1

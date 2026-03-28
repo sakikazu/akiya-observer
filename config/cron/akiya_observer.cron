@@ -1,0 +1,10 @@
+# Akiya Observer crawlers (JST)
+# Run daily:
+# - OK Smile at 07:33 JST
+# - Cocosma Ina at 07:43 JST
+# 反映方法:
+# 1) `crontab /home/sakikazu/dev/rails/akiya-observer/config/cron/akiya_observer.cron`
+# 2) `crontab -l` で反映確認
+TZ=Asia/Tokyo
+33 7 * * * /home/sakikazu/dev/rails/akiya-observer/script/cron/ok_smile_daily.sh >> /home/sakikazu/dev/rails/akiya-observer/log/ok_smile_cron.log 2>&1
+43 7 * * * /home/sakikazu/dev/rails/akiya-observer/script/cron/cocosma_ina_daily.sh >> /home/sakikazu/dev/rails/akiya-observer/log/cocosma_ina_cron.log 2>&1

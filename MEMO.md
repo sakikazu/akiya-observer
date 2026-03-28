@@ -1,6 +1,37 @@
-## TODO
-- まだ物件のdisapeard_atは登録するロジックはない
-- これを登録するには、すべてのページをクロールし、そこに見つからなかったものをDBと照合して、日付を登録する必要がある
+## 定期実行
+
+- `ok_smile`
+  - cronで定期実行している
+  - cron定義: `config/cron/akiya_observer.cron`
+  - 実行スクリプト: `script/cron/ok_smile_daily.sh`
+  - 実行時刻: 毎日 07:33 JST
+  - 実行コマンド: `bundle exec rails crawl:ok_smile`
+  - 現在のざっくり仕様
+    - taskのデフォルト値で実行される
+    - 一覧ページのみ取得
+    - 詳細ページは取得しない（`FETCH_DETAIL=false`）
+    - 画像はダウンロードしない（`DOWNLOAD_IMAGES=false`）
+    - 1ページ目のみ取得（`FETCH_ALL=false`, `PAGE=1`, `PAGES=1`）
+    - `daily_crawls` への日次記録はしない（`DISAPPEAR_CHECK=false`）
+    - デフォルト検索URLは task 内の `SEARCH_URL`
+
+- `cocosma_ina`
+  - cronで定期実行する設定を追加済み
+  - cron定義: `config/cron/akiya_observer.cron`
+  - 実行スクリプト: `script/cron/cocosma_ina_daily.sh`
+  - 実行時刻: 毎日 07:43 JST
+  - 実行コマンド: `bundle exec rails crawl:cocosma_ina`
+  - 現在のざっくり仕様
+    - taskのデフォルト値で実行される
+    - 一覧ページを取得
+    - 詳細ページも取得する
+    - 一覧の `最終更新日` と DB の `source_updated_at` を比較し、未取得または更新時だけ詳細を再取得する
+    - PR物件はスキップする
+    - 画像はダウンロードしない（`DOWNLOAD_IMAGES=false`）
+    - 1ページ目のみ取得（`FETCH_ALL=false`, `PAGE=1`, `PAGES=1`）
+    - `daily_crawls` への日次記録はしない（`DISAPPEAR_CHECK=false`）
+    - デフォルト検索URLは「500万円以上、間取り問わず、の中古物件」
+
 
 ## disappeared_atを登録するとき（物件消失日）
 - 概要：全件クロール時に、存在するすべての物件external_idを保存(daily_crawls)しておき、その後、disappear:markを実行することで、disappeared_atが登録される
