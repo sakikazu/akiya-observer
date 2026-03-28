@@ -63,7 +63,8 @@
         <div class="favorites-list" data-map-target="favorites">
           <% if @favorite_listings.present? %>
             <% @favorite_listings.each do |listing| %>
-              <div class="favorites-item" data-favorite-listing-id="<%= listing.id %>" data-favorite-latitude="<%= listing.latitude %>" data-favorite-longitude="<%= listing.longitude %>">
+              <div class="favorites-item<%= " is-gone" if listing.disappeared_at.present? %>" data-favorite-listing-id="<%= listing.id %>" data-favorite-latitude="<%= listing.latitude %>" data-favorite-longitude="<%= listing.longitude %>">
+                <span class="favorites-dot" aria-hidden="true"></span>
                 <p class="favorites-title"><%= listing.title.presence || "物件名未登録" %></p>
               </div>
             <% end %>
