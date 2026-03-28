@@ -162,8 +162,8 @@ namespace :crawl do
 
     search_url = prompt_env(
       "SEARCH_URL",
-      # 長野県伊那の中古物件、3LDK以上の間取り、新着順の検索URL。
-      default: "https://ina.fudousan.co.jp/lists/2/1/q?listtype=tab-detail&area=&key=&ss=&sc=&k_l=&k_h=&la_l=&la_h=&ll_l=&ll_h=&p_h=&k_d=&r_c%5B8%5D=3LDK&r_c%5B9%5D=4K&r_c%5B10%5D=4DK&r_c%5B11%5D=4LDK&r_cmax=%E4%BB%A5%E4%B8%8A&scode%5B1212%5D=%E4%B8%AD%E5%8F%A4%E4%BD%8F%E5%AE%85&scode%5B1223%5D=%E4%B8%AD%E5%8F%A4%E5%88%A5%E8%8D%98&dr=1&ev=1&rs=50",
+      # 長野県伊那の500万円以上、間取り問わず、の中古物件、新着順の検索URL。
+      default: "https://ina.fudousan.co.jp/lists/2/1/q?listtype=&area=&key=&ss=&sc=&k_l=500&k_h=&la_l=&la_h=&ll_l=&ll_h=&p_h=&k_d=&scode%5B1212%5D=%E4%B8%AD%E5%8F%A4%E4%BD%8F%E5%AE%85&scode%5B1223%5D=%E4%B8%AD%E5%8F%A4%E5%88%A5%E8%8D%98&dr=1&ev=1&rs=50",
       required: true,
       label: "検索URL (必須)"
     )
