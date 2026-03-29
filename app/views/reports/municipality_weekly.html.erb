@@ -2,42 +2,52 @@
   <header class="report-hero">
     <p class="report-eyebrow">Akiya Observer</p>
     <h1>市区町村ごとの週次物件サマリー</h1>
-    <h2><%= @prefecture.name %></h2>
+    <div class="report-prefecture">
+      <h2><%= @prefecture.name %></h2>
+      <form action="<%= reports_municipality_weekly_path %>" method="get" class="report-prefecture__form">
+        <div>
+          <label for="prefecture_code">都道府県</label>
+          <%= select_tag :prefecture_code, options_for_select(@prefecture_options, @prefecture.code), id: "prefecture_code", onchange: "this.form.requestSubmit()" %>
+        </div>
+        <div>
+          <label for="week">期間</label>
+          <%= select_tag :week, options_for_select(@week_options, @selected_week[:key]), id: "week", onchange: "this.form.requestSubmit()" %>
+        </div>
+      </form>
+    </div>
     <p class="report-subtitle">2026/01/26 からの週次集計（新規/消失/総件数）</p>
   </header>
 
-  <% @weeks.each do |week| %>
-    <% counts = @weekly_counts[week[:key]] %>
-    <section class="report-week">
-      <h3><%= "#{week[:start_date]}〜#{week[:end_date]}" %></h3>
-      <div class="report-table">
-        <table>
-          <thead>
+  <% counts = @weekly_counts[@selected_week[:key]] %>
+  <section class="report-week">
+    <h3><%= "#{@selected_week[:start_date]}〜#{@selected_week[:end_date]}" %></h3>
+    <div class="report-table">
+      <table>
+        <thead>
+          <tr>
+            <th>市区町村</th>
+            <th>新規</th>
+            <th>消失</th>
+            <th>平均掲載日数</th>
+            <th>総件数</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @municipalities.each do |municipality| %>
+            <% new_count = counts[:new][municipality.id] || 0 %>
+            <% disappeared_count = counts[:disappeared][municipality.id] || 0 %>
+            <% avg_days = counts[:avg_days_to_disappear][municipality.id] %>
+            <% total_count = counts[:total][municipality.id] || 0 %>
             <tr>
-              <th>市区町村</th>
-              <th>新規</th>
-              <th>消失</th>
-              <th>平均掲載日数</th>
-              <th>総件数</th>
+              <td><%= municipality.name %></td>
+              <td><%= new_count %></td>
+              <td><%= disappeared_count %></td>
+              <td><%= avg_days ? "#{avg_days}日" : "-" %></td>
+              <td><%= total_count %></td>
             </tr>
-          </thead>
-          <tbody>
-            <% @municipalities.each do |municipality| %>
-              <% new_count = counts[:new][municipality.id] || 0 %>
-              <% disappeared_count = counts[:disappeared][municipality.id] || 0 %>
-              <% avg_days = counts[:avg_days_to_disappear][municipality.id] %>
-              <% total_count = counts[:total][municipality.id] || 0 %>
-              <tr>
-                <td><%= municipality.name %></td>
-                <td><%= new_count %></td>
-                <td><%= disappeared_count %></td>
-                <td><%= avg_days ? "#{avg_days}日" : "-" %></td>
-                <td><%= total_count %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  <% end %>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>

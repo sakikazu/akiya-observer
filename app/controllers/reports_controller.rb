@@ -1,11 +1,21 @@
 class ReportsController < ApplicationController
   START_DATE = Date.new(2026, 1, 26)
+  DEFAULT_PREFECTURE_CODE = "33"
 
   def municipality_weekly
     @weeks = build_weeks
-    @prefecture = Prefecture.find_by!(code: "33")
-    @municipalities = @prefecture.municipalities.order(:name)
-    @weekly_counts = build_weekly_counts(@weeks)
+    @prefecture_options = Prefecture.order(:code).pluck(:name, :code)
+    @prefecture = Prefecture.find_by!(code: params[:prefecture_code].presence || DEFAULT_PREFECTURE_CODE)
+    municipality_ids = SourceListing.where(municipality_id: @prefecture.municipalities.select(:id))
+      .where.not(municipality_id: nil)
+      .distinct
+      .pluck(:municipality_id)
+    @municipalities = @prefecture.municipalities.where(id: municipality_ids).order(:name)
+    @selected_week = selected_week(@weeks)
+    @week_options = @weeks.map do |week|
+      ["#{week[:start_date]}〜#{week[:end_date]}", week[:key]]
+    end
+    @weekly_counts = build_weekly_counts([@selected_week])
   end
 
   private
@@ -59,5 +69,10 @@ class ReportsController < ApplicationController
 
       (days.sum / days.size).round(1)
     end
+  end
+
+  def selected_week(weeks)
+    requested_key = params[:week].presence
+    weeks.find { |week| week[:key] == requested_key } || weeks.last
   end
 end
