@@ -8,4 +8,9 @@ fi
 # Default to port 3000 if not specified
 export PORT="${PORT:-3000}"
 
+# Rails development server can leave tmp/pids/server.pid behind, and PID reuse
+# makes existence checks unreliable. Remove it before boot like the default
+# Rails bin/dev script does.
+rm -f tmp/pids/server.pid
+
 exec foreman start -f Procfile.dev --env /dev/null "$@"

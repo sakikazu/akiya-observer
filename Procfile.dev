@@ -1,2 +1,2 @@
-web: env RUBY_DEBUG_OPEN=true bin/rails server
+web: env RUBY_DEBUG_OPEN=true bin/rails server -b ${HOST:-127.0.0.1}
 js: yarn build --watch
