@@ -53,10 +53,17 @@ namespace :crawl do
       label: "検索URL (必須)"
     )
     fetch_detail = prompt_env("FETCH_DETAIL", default: "false", type: :boolean, label: "詳細ページも取得するか (true/false)")
-    download_images = prompt_env("DOWNLOAD_IMAGES", default: "false", type: :boolean, label: "画像をダウンロードするか (true/false)")
-    fetch_all = prompt_env("FETCH_ALL", default: "false", type: :boolean, label: "全ページを取得するか (true/false)")
-    start_page = fetch_all ? 1 : prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
-    max_pages = fetch_all ? nil : prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+    if record_daily
+      download_images = false
+      fetch_all = true
+      start_page = 1
+      max_pages = nil
+    else
+      download_images = prompt_env("DOWNLOAD_IMAGES", default: "false", type: :boolean, label: "画像をダウンロードするか (true/false)")
+      fetch_all = prompt_env("FETCH_ALL", default: "false", type: :boolean, label: "全ページを取得するか (true/false)")
+      start_page = fetch_all ? 1 : prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
+      max_pages = fetch_all ? nil : prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+    end
 
     if record_daily
       source_site = SourceSite.find_by!(code: "ok-smile")
@@ -167,10 +174,17 @@ namespace :crawl do
       required: true,
       label: "検索URL (必須)"
     )
-    download_images = prompt_env("DOWNLOAD_IMAGES", default: "false", type: :boolean, label: "画像をダウンロードするか (true/false)")
-    fetch_all = prompt_env("FETCH_ALL", default: "false", type: :boolean, label: "全ページを取得するか (true/false)")
-    start_page = fetch_all ? 1 : prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
-    max_pages = fetch_all ? nil : prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+    if record_daily
+      download_images = false
+      fetch_all = true
+      start_page = 1
+      max_pages = nil
+    else
+      download_images = prompt_env("DOWNLOAD_IMAGES", default: "false", type: :boolean, label: "画像をダウンロードするか (true/false)")
+      fetch_all = prompt_env("FETCH_ALL", default: "false", type: :boolean, label: "全ページを取得するか (true/false)")
+      start_page = fetch_all ? 1 : prompt_env("PAGE", default: "1", type: :integer, label: "開始ページ番号")
+      max_pages = fetch_all ? nil : prompt_env("PAGES", default: "1", type: :integer, label: "取得するページ数")
+    end
 
     if record_daily
       source_site = SourceSite.find_or_create_by!(code: "cocosma-ina") do |site|
@@ -188,7 +202,8 @@ namespace :crawl do
 
     CocosmaIna::Crawler.new(
       search_url: search_url,
-      fetch_detail: true,
+      # 消失判定用の全クロールでは external_id 一覧だけあれば十分なため、詳細は取得しない。
+      fetch_detail: !record_daily,
       download_images: download_images,
       fetch_all: fetch_all,
       start_page: start_page,

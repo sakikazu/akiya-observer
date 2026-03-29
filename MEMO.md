@@ -14,6 +14,7 @@
     - 1ページ目のみ取得（`FETCH_ALL=false`, `PAGE=1`, `PAGES=1`）
     - `daily_crawls` への日次記録はしない（`DISAPPEAR_CHECK=false`）
     - デフォルト検索URLは task 内の `SEARCH_URL`
+    - `DISAPPEAR_CHECK=true` のときは、画像ダウンロードなし・全ページ取得に固定する
 
 - `cocosma_ina`
   - cronで定期実行する設定を追加済み
@@ -31,6 +32,7 @@
     - 1ページ目のみ取得（`FETCH_ALL=false`, `PAGE=1`, `PAGES=1`）
     - `daily_crawls` への日次記録はしない（`DISAPPEAR_CHECK=false`）
     - デフォルト検索URLは「500万円以上、間取り問わず、の中古物件」
+    - `DISAPPEAR_CHECK=true` のときは、詳細取得なし・画像ダウンロードなし・全ページ取得に固定する
 
 
 ## disappeared_atを登録するとき（物件消失日）
