@@ -58,6 +58,7 @@ export default class extends Controller {
     if (this.hasFavoritesTarget) {
       this.favoritesTarget.removeEventListener("click", this.handleFavoritesClick)
     }
+    this.imageLightbox?.remove()
   }
 
   // 掲載終了物件のレイヤー表示を切り替える。
@@ -210,12 +211,13 @@ export default class extends Controller {
   // 物件ポップアップのHTMLを生成する。
   popupHtml(listing, nearestSchool = null) {
     const resolvedNearest = nearestSchool || this.nearestSchool(listing)
-    const image = listing.image_url
-      ? `<img src="${listing.image_url}" alt="${listing.title}" class="popup-image">`
-      : `<div class="popup-image placeholder"></div>`
-    const price = listing.price || "価格未設定"
+    const image = this.galleryHtml(listing)
+    const price = this.listingPrice(listing)
     const layout = listing.layout || "間取り不明"
     const address = listing.address || "住所未登録"
+    const addressBadge = listing.address_precision === "area"
+      ? `<span class="address-precision-badge">番地非公開</span>`
+      : ""
     const landArea = listing.land_area ? `土地面積: ${listing.land_area}` : "土地面積: 未登録"
     const buildingArea = listing.building_area ? `建物面積: ${listing.building_area}` : "建物面積: 未登録"
     const status = listing.disappeared_at ? "掲載終了" : "掲載中"
@@ -240,7 +242,7 @@ export default class extends Controller {
         <div class="popup-body">
           <p class="popup-title">${listing.title || "物件名未登録"}</p>
           <p class="popup-meta">${price} / ${layout} / ${landArea} / ${buildingArea}</p>
-          <p class="popup-meta">${address}</p>
+          <p class="popup-meta popup-address"><span>${address}</span>${addressBadge}</p>
           <div class="popup-row">
             <p class="popup-meta">${status}</p>
           </div>
@@ -253,6 +255,32 @@ export default class extends Controller {
         </div>
       </div>
     `
+  }
+
+  // 保存画像を切り替えるポップアップ内ギャラリーを生成する。
+  galleryHtml(listing) {
+    const urls = listing.image_urls?.length ? listing.image_urls : [listing.image_url].filter(Boolean)
+    if (urls.length === 0) return `<div class="popup-image placeholder"></div>`
+
+    const images = urls.map((url, index) => `
+      <img src="${url}" alt="${listing.title || "物件画像"}" class="popup-image popup-gallery__image${index === 0 ? " is-active" : ""}" data-gallery-image data-gallery-index="${index}">
+    `).join("")
+    const controls = urls.length > 1 ? `
+      <button type="button" class="popup-gallery__button is-prev" data-gallery-direction="-1" aria-label="前の画像">‹</button>
+      <button type="button" class="popup-gallery__button is-next" data-gallery-direction="1" aria-label="次の画像">›</button>
+      <span class="popup-gallery__counter"><span data-gallery-current>1</span> / ${urls.length}</span>
+    ` : ""
+
+    return `<div class="popup-gallery" data-popup-gallery>${images}${controls}</div>`
+  }
+
+  // 売買・賃貸の種別に応じて価格を分かりやすく表示する。
+  listingPrice(listing) {
+    const sale = listing.price ? `売買 ${listing.price}` : null
+    const rents = ["rent", "sale_and_rent"].includes(listing.transaction_type)
+    const rent = listing.monthly_rent ? `賃貸 月額${listing.monthly_rent}` : (rents ? "賃料はお問い合わせ" : null)
+
+    return [sale, rent].filter(Boolean).join(" / ") || "価格未設定"
   }
 
   // 未ジオコーディング市区町村のポップアップを生成する。
@@ -520,6 +548,22 @@ export default class extends Controller {
   }
 
   handlePopupClick(event) {
+    const galleryButton = event.target.closest("[data-gallery-direction]")
+    if (galleryButton) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.changeGalleryImage(galleryButton)
+      return
+    }
+
+    const galleryImage = event.target.closest("[data-gallery-image]")
+    if (galleryImage) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.openImageLightbox(galleryImage)
+      return
+    }
+
     const favoriteButton = event.target.closest("[data-favorite-toggle]")
     if (favoriteButton) {
       event.preventDefault()
@@ -566,6 +610,51 @@ export default class extends Controller {
       .setLatLng([missing.latitude, missing.longitude])
       .setContent(content)
       .addTo(this.map)
+  }
+
+  // 矢印の方向にギャラリー画像を循環させる。
+  changeGalleryImage(button) {
+    const gallery = button.closest("[data-popup-gallery]")
+    const images = Array.from(gallery?.querySelectorAll("[data-gallery-image]") || [])
+    if (images.length < 2) return
+
+    const currentIndex = images.findIndex((image) => image.classList.contains("is-active"))
+    const direction = Number(button.dataset.galleryDirection)
+    const nextIndex = (currentIndex + direction + images.length) % images.length
+    images.forEach((image, index) => image.classList.toggle("is-active", index === nextIndex))
+    const counter = gallery.querySelector("[data-gallery-current]")
+    if (counter) counter.textContent = String(nextIndex + 1)
+  }
+
+  // 選択中の画像を画面全体で確認できる簡易ビューアを開く。
+  openImageLightbox(image) {
+    this.imageLightbox?.remove()
+    const lightbox = document.createElement("div")
+    lightbox.className = "image-lightbox"
+    lightbox.setAttribute("role", "dialog")
+    lightbox.setAttribute("aria-modal", "true")
+
+    const fullImage = document.createElement("img")
+    fullImage.src = image.src
+    fullImage.alt = image.alt
+    fullImage.className = "image-lightbox__image"
+
+    const closeButton = document.createElement("button")
+    closeButton.type = "button"
+    closeButton.className = "image-lightbox__close"
+    closeButton.setAttribute("aria-label", "画像を閉じる")
+    closeButton.textContent = "×"
+
+    const close = () => {
+      lightbox.remove()
+      if (this.imageLightbox === lightbox) this.imageLightbox = null
+    }
+    lightbox.addEventListener("click", (event) => {
+      if (event.target === lightbox || event.target === closeButton) close()
+    })
+    lightbox.append(fullImage, closeButton)
+    document.body.appendChild(lightbox)
+    this.imageLightbox = lightbox
   }
 
   findMissingEntry(municipalityId) {

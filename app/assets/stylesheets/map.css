@@ -322,6 +322,96 @@ body {
   display: block;
 }
 
+.popup-gallery {
+  position: relative;
+  background: var(--slate-900);
+}
+
+.popup-gallery__image {
+  display: none;
+  cursor: zoom-in;
+}
+
+.popup-gallery__image.is-active {
+  display: block;
+}
+
+.popup-gallery__button {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 34px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.68);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.popup-gallery__button:hover {
+  background: rgba(15, 23, 42, 0.88);
+}
+
+.popup-gallery__button.is-prev {
+  left: 8px;
+}
+
+.popup-gallery__button.is-next {
+  right: 8px;
+}
+
+.popup-gallery__counter {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.88);
+  cursor: zoom-out;
+}
+
+.image-lightbox__image {
+  max-width: min(1100px, 94vw);
+  max-height: 90vh;
+  object-fit: contain;
+  cursor: default;
+}
+
+.image-lightbox__close {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--slate-900);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .popup-image.placeholder {
   background: linear-gradient(130deg, #fef3c7, #e0f2fe);
 }
@@ -340,6 +430,27 @@ body {
   font-size: 12px;
   color: var(--slate-500);
   margin-bottom: 2px;
+}
+
+.popup-address {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.address-precision-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid #f59e0b;
+  border-radius: 999px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 .popup-row {

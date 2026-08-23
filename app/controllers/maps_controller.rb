@@ -17,10 +17,16 @@ class MapsController < ApplicationController
 
   def map_payload(listing, favorite_ids = nil)
     image = listing.listing_images.find(&:is_main) || listing.listing_images.first
+    local_images = listing.listing_images.select { |candidate| candidate.local_path.present? }
+      .sort_by { |candidate| [ candidate.position || Float::INFINITY, candidate.id ] }
+    image_urls = local_images.map { |candidate| image_url(candidate) }
+    image_urls = [ image_url(image) ].compact if image_urls.empty?
     {
       id: listing.id,
       title: listing.title,
       price: formatted_price(listing.price),
+      monthly_rent: formatted_price(listing.monthly_rent),
+      transaction_type: listing.transaction_type,
       layout: listing.layout,
       address: listing.address,
       address_precision: listing.address_precision,
@@ -35,6 +41,7 @@ class MapsController < ApplicationController
       favorite: favorite_ids ? favorite_ids.include?(listing.id) : false,
       disappeared_at: listing.disappeared_at&.to_date&.to_s,
       image_url: image_url(image),
+      image_urls: image_urls,
       highlight_text: listing.highlight_text
     }
   end
@@ -103,7 +110,7 @@ class MapsController < ApplicationController
         names[id] = name
         representative_coords[id] = { latitude: latitude, longitude: longitude }
       end
-    [names, representative_coords]
+    [ names, representative_coords ]
   end
 
   # 市区町村ごとの緯度経度平均を返す。
