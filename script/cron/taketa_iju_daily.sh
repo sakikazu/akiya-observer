@@ -7,7 +7,7 @@ ASDF_DIR="${ASDF_DIR:-$HOME/.asdf}"
 cd "${APP_DIR}"
 
 if [ -f "${ASDF_DIR}/asdf.sh" ]; then
-  # Load asdf so the Ruby version from .ruby-version is used in cron.
+  # Load asdf so the Ruby version from .tool-versions is used in cron.
   # shellcheck disable=SC1090
   . "${ASDF_DIR}/asdf.sh"
 fi

@@ -34,7 +34,7 @@
 - SQLite 3
 - curl
 
-Rubyのバージョンは[`.ruby-version`](.ruby-version)を参照してください。
+Rubyのバージョンは[`.tool-versions`](.tool-versions)を参照してください。
 
 ## セットアップ
 

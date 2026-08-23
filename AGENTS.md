@@ -35,5 +35,5 @@
 - UI 変更はスクリーンショットを添付し、テスト実行状況を明記します。
 
 ## 設定と環境
-- Ruby は `3.2.6` です（`.ruby-version`）。
+- Ruby は `3.2.6` です（`.tool-versions`）。
 - 既定 DB は SQLite です。環境変更時は `config/database.yml` を確認します。
