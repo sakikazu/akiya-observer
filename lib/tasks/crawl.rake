@@ -226,4 +226,50 @@ namespace :crawl do
     end
     raise e
   end
+
+  desc "Crawl Taketa City Akiya Bank listings via curl and save to DB"
+  task taketa_iju: :environment do
+    record_daily = prompt_env("DISAPPEAR_CHECK", default: "false", type: :boolean, label: "全件クロールして消失判定用に記録するか (true/false)")
+    search_url = prompt_env(
+      "SEARCH_URL",
+      default: TaketaIju::HtmlImporter::DEFAULT_SEARCH_URL,
+      required: true,
+      label: "検索URL (必須)"
+    )
+    fetch_detail = record_daily ? false : prompt_env("FETCH_DETAIL", default: "true", type: :boolean, label: "詳細ページも取得するか (true/false)")
+    download_images = record_daily ? false : prompt_env("DOWNLOAD_IMAGES", default: "true", type: :boolean, label: "メイン画像と間取り図をダウンロードするか (true/false)")
+    source_site = SourceSite.find_or_create_by!(code: "taketa-iju") do |site|
+      site.name = "竹田市空き家バンク"
+      site.base_url = TaketaIju::HtmlImporter::DEFAULT_BASE_URL
+      site.search_url = search_url
+      site.active = true
+    end
+    crawl_record = nil
+    collected_external_ids = []
+
+    if record_daily
+      crawl_record = DailyCrawl.find_or_initialize_by(source_site: source_site, crawled_on: Date.current)
+      crawl_record.assign_attributes(status: "running", started_at: Time.current)
+      crawl_record.save!
+    end
+
+    TaketaIju::Crawler.new(
+      search_url: search_url,
+      fetch_detail: fetch_detail,
+      download_images: download_images,
+      on_listing: ->(listing) { collected_external_ids << listing.external_id if record_daily }
+    ).call
+
+    if crawl_record
+      crawl_record.update!(
+        status: "completed",
+        finished_at: Time.current,
+        listing_count: collected_external_ids.uniq.size,
+        external_ids: collected_external_ids.uniq
+      )
+    end
+  rescue StandardError => e
+    crawl_record&.update(status: "failed", finished_at: Time.current)
+    raise e
+  end
 end

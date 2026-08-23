@@ -34,6 +34,17 @@
     - デフォルト検索URLは「500万円以上、間取り問わず、の中古物件」
     - `DISAPPEAR_CHECK=true` のときは、詳細取得なし・画像ダウンロードなし・全ページ取得に固定する
 
+- `taketa_iju`
+  - 竹田市空き家バンクの売買・賃貸物件を取得する
+  - 「交渉中」は状態・タグとして保存せず無視する
+  - メイン画像と間取り図をローカル保存する（`DOWNLOAD_IMAGES=true`）
+  - cron定義: `config/cron/akiya_observer.cron`
+  - 実行スクリプト: `script/cron/taketa_iju_daily.sh`
+  - 実行時刻: 毎日 07:53 JST
+  - 実行コマンド: `bundle exec rails crawl:taketa_iju`
+  - `DISAPPEAR_CHECK=true` のときは、詳細取得なし・画像ダウンロードなしで全売買物件を記録する
+  - 竹田市物件だけをジオコーディング: `SOURCE_CODE=taketa-iju bin/rails geocode:source_listings`
+
 
 ## disappeared_atを登録するとき（物件消失日）
 - 概要：全件クロール時に、存在するすべての物件external_idを保存(daily_crawls)しておき、その後、disappear:markを実行することで、disappeared_atが登録される

@@ -13,8 +13,8 @@ module Geocoding
     end
 
     # 新着に近い物件を優先して座標化する。
-    def call(limit: DEFAULT_LIMIT)
-      scope = SourceListing.where(latitude: nil, longitude: nil).where.not(address: [nil, ""])
+    def call(limit: DEFAULT_LIMIT, scope: SourceListing.all)
+      scope = scope.where(latitude: nil, longitude: nil).where.not(address: [ nil, "" ])
       total = scope.count
       log("Geocoding up to #{limit} listings (#{total} pending)")
 

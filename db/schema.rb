@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_31_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_08_23_093000) do
   create_table "daily_crawls", force: :cascade do |t|
     t.date "crawled_on", null: false
     t.integer "source_site_id", null: false
@@ -117,8 +117,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_31_120000) do
     t.decimal "latitude", precision: 10, scale: 6
     t.decimal "longitude", precision: 10, scale: 6
     t.integer "municipality_id"
+    t.string "transaction_type", default: "sale", null: false
+    t.integer "monthly_rent"
     t.index ["municipality_id"], name: "index_source_listings_on_municipality_id"
     t.index ["source_site_id"], name: "index_source_listings_on_source_site_id"
+    t.index ["transaction_type"], name: "index_source_listings_on_transaction_type"
   end
 
   create_table "source_sites", force: :cascade do |t|
